@@ -12,13 +12,11 @@
         :root {
             --darker-bg: #1a1f2e; --dark-bg: #1e222d; --light-bg: #292E3D;
             --text-color: #f8f9fa; --text-secondary: #adb5bd; --accent-color: #6e7fff;
-            --accent-color-dark: #5867ff; --success: #28a745; --danger: #dc3545;
         }
         body { font-family: 'Work Sans', sans-serif; background-color: var(--darker-bg); color: var(--text-color); margin: 0; }
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         header { background-color: var(--light-bg); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 100;}
         .logo { font-family: 'Kanit', sans-serif; font-size: 1.5rem; color: var(--text-color); text-decoration: none; }
-        nav { display: flex; align-items: center; }
         nav a { color: var(--text-secondary); text-decoration: none; margin-left: 20px; transition: color 0.2s; font-weight: 500;}
         nav a.active, nav a:hover { color: var(--accent-color); }
         h1, h2 { font-family: 'Kanit', sans-serif; }
@@ -42,153 +40,93 @@
         }
         .pickup-checkbox { width: 20px; height: 20px; cursor: pointer; }
         .no-items { padding: 50px; text-align: center; color: var(--text-secondary); }
-        .login-screen { display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: var(--darker-bg); }
-        .login-box { background-color: var(--light-bg); padding: 40px; border-radius: 10px; width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: center; }
-        .login-box .logo { font-size: 2rem; margin-bottom: 20px; display: inline-block; text-decoration: none; color: var(--text-color); }
-        .login-box p { color: var(--text-secondary); margin-bottom: 30px; }
-        .login-box .form-group { text-align: left; margin-bottom: 20px; }
-        .login-box label { display: block; margin-bottom: 8px; font-weight: 500; }
-        .login-box input { width: 100%; padding: 12px; border-radius: 5px; border: 1px solid var(--dark-bg); background-color: var(--dark-bg); color: var(--text-color); font-size: 1rem; box-sizing: border-box; }
-        .login-error { color: var(--danger); background-color: rgba(220, 53, 69, 0.1); border: 1px solid var(--danger); padding: 10px; border-radius: 5px; margin-top: 20px; text-align: center; }
-        nav .logout-button { background-color: var(--accent-color); color: white; padding: 8px 15px; border-radius: 5px; margin-left: 20px; text-decoration: none; font-weight: 500; transition: background-color 0.2s; }
-        nav .logout-button:hover { background-color: var(--accent-color-dark); color: white; }
     </style>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
 </head>
 <body>
-    <div id="app">
-        <div v-if="!isAuthenticated" class="login-screen">
-            <div class="login-box">
-                <a href="#" class="logo">Reunited Admin</a>
-                <p>Please sign in to access the dashboard.</p>
-                <form @submit.prevent="handleLogin">
-                    <div class="form-group">
-                        <label for="email">Email Address</label>
-                        <input type="email" id="email" v-model="loginEmail" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" v-model="loginPassword" required>
-                    </div>
-                    <button type="submit" class="btn">Sign In</button>
-                    <div v-if="loginError" class="login-error">{{ loginError }}</div>
-                </form>
-            </div>
-        </div>
+    <div id="reportApp">
+        <header>
+            <a href="index.html" class="logo">Reunited Admin</a>
+            <nav>
+                <a href="index.html">Dashboard</a>
+                <a href="add_item.html">Add Item</a>
+                <a href="item_log.html">Item Log</a>
+                <a href="daily_report.html" class="active">Daily Report</a>
+            </nav>
+        </header>
 
-        <div v-if="isAuthenticated">
-            <header>
-                <a href="dashboard.html" class="logo">Reunited Admin</a>
-                <nav>
-                    <a href="dashboard.html">Dashboard</a>
-                    <a href="add_item.html">Add Item</a>
-                    <a href="item_log.html">Item Log</a>
-                    <a href="daily_report.html" class="active">Daily Report</a>
-                    <a href="#" @click.prevent="handleLogout" class="logout-button">Sign Out</a>
-                </nav>
-            </header>
-    
-            <div class="container">
-                <h1>Daily Report & Pickup Management</h1>
-    
-                <div v-if="isLoading" class="loading-spinner"><div class="spinner"></div></div>
-    
-                <div v-else>
-                    <div class="report-section">
-                        <h2>Claimed Today ({{ claimedToday.length }})</h2>
-                        <div v-if="claimedToday.length > 0" class="table-container">
-                            <table>
-                                <thead><tr><th>Item Name</th><th>Claimed By</th><th>Claim Code</th><th>Claim Time</th></tr></thead>
-                                <tbody>
-                                    <tr v-for="item in claimedToday" :key="item.id">
-                                        <td>{{ item.name }}</td>
-                                        <td>{{ item.claimantName }}</td>
-                                        <td>{{ item.claimCode }}</td>
-                                        <td>{{ formatTime(item.claimDate) }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div v-else class="no-items">No items have been claimed today.</div>
+        <div class="container">
+            <h1>Daily Report & Pickup Management</h1>
+
+            <div v-if="isLoading" class="loading-spinner"><div class="spinner"></div></div>
+
+            <div v-else>
+                <div class="report-section">
+                    <h2>Claimed Today ({{ claimedToday.length }})</h2>
+                    <div v-if="claimedToday.length > 0" class="table-container">
+                        <table>
+                            <thead><tr><th>Item Name</th><th>Claimed By</th><th>Claim Code</th><th>Claim Time</th></tr></thead>
+                            <tbody>
+                                <tr v-for="item in claimedToday" :key="item.id">
+                                    <td>{{ item.name }}</td>
+                                    <td>{{ item.claimantName }}</td>
+                                    <td>{{ item.claimCode }}</td>
+                                    <td>{{ formatTime(item.claimDate) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-    
-                    <div class="report-section">
-                        <h2>Pending Pickup ({{ pendingPickup.length }})</h2>
-                        <div v-if="pendingPickup.length > 0" class="table-container">
-                            <table>
-                                <thead><tr><th>Item Name</th><th>Claimed By</th><th>Claim Code</th><th>Storage Location</th><th>Mark as Picked Up</th></tr></thead>
-                                <tbody>
-                                    <tr v-for="item in pendingPickup" :key="item.id">
-                                        <td>{{ item.name }}</td>
-                                        <td>{{ item.claimantName }}</td>
-                                        <td>{{ item.claimCode }}</td>
-                                        <td>
-                                            <input type="text" v-model="item.storageLocation" @change="item.locationChanged = true" class="location-input" placeholder="e.g. Shelf A-1">
-                                            <button v-if="item.locationChanged" class="btn-save" @click="saveLocation(item)">Save</button>
-                                        </td>
-                                        <td style="text-align: center;">
-                                            <input type="checkbox" class="pickup-checkbox" @change="markAsPickedUp(item, $event)">
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                         <div v-else class="no-items">No items are currently pending pickup.</div>
+                    <div v-else class="no-items">No items have been claimed today.</div>
+                </div>
+
+                <div class="report-section">
+                    <h2>Pending Pickup ({{ pendingPickup.length }})</h2>
+                    <div v-if="pendingPickup.length > 0" class="table-container">
+                        <table>
+                            <thead><tr><th>Item Name</th><th>Claimed By</th><th>Claim Code</th><th>Storage Location</th><th>Mark as Picked Up</th></tr></thead>
+                            <tbody>
+                                <tr v-for="item in pendingPickup" :key="item.id">
+                                    <td>{{ item.name }}</td>
+                                    <td>{{ item.claimantName }}</td>
+                                    <td>{{ item.claimCode }}</td>
+                                    <td>
+                                        <input type="text" v-model="item.storageLocation" @change="item.locationChanged = true" class="location-input" placeholder="e.g. Shelf A-1">
+                                        <button v-if="item.locationChanged" class="btn-save" @click="saveLocation(item)">Save</button>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <input type="checkbox" class="pickup-checkbox" @change="markAsPickedUp(item, $event)">
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
+                     <div v-else class="no-items">No items are currently pending pickup.</div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <script>
-        window.env = {
-            FIREBASE_API_KEY: "YOUR_API_KEY",
-            FIREBASE_AUTH_DOMAIN: "YOUR_AUTH_DOMAIN",
-            FIREBASE_PROJECT_ID: "YOUR_PROJECT_ID",
-            FIREBASE_STORAGE_BUCKET: "YOUR_STORAGE_BUCKET",
-            FIREBASE_MESSAGING_SENDER_ID: "YOUR_MESSAGING_SENDER_ID",
-            FIREBASE_APP_ID: "YOUR_APP_ID"
-        };
-    </script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
     <script>
-        const firebaseConfig = {
-            apiKey: window.env.FIREBASE_API_KEY,
-            authDomain: window.env.FIREBASE_AUTH_DOMAIN,
-            projectId: window.env.FIREBASE_PROJECT_ID,
-            storageBucket: window.env.FIREBASE_STORAGE_BUCKET,
-            messagingSenderId: window.env.FIREBASE_MESSAGING_SENDER_ID,
-            appId: window.env.FIREBASE_APP_ID
-        };
-        
+        const db = firebase.firestore();
+
         const app = Vue.createApp({
             data() {
                 return {
-                    isAuthenticated: false,
-                    loginEmail: '',
-                    loginPassword: '',
-                    loginError: '',
                     isLoading: true,
                     claimedToday: [],
                     pendingPickup: []
                 };
             },
+            mounted() {
+                this.fetchClaimedItems();
+            },
             methods: {
-                handleLogin() {
-                    this.loginError = '';
-                    firebase.auth().signInWithEmailAndPassword(this.loginEmail, this.loginPassword)
-                        .catch(error => {
-                            this.loginError = "Login failed. Please check your email and password.";
-                        });
-                },
-                handleLogout() {
-                    firebase.auth().signOut();
-                },
-                initData() {
-                    this.fetchClaimedItems();
-                },
                 async fetchClaimedItems() {
                     this.isLoading = true;
                     try {
@@ -233,6 +171,7 @@
                         item.locationChanged = false;
                         alert(`Location for "${item.name}" updated!`);
                     } catch (error) {
+                        console.error("Error updating location:", error);
                         alert("Failed to update location.");
                     }
                 },
@@ -260,6 +199,7 @@
                         this.pendingPickup = this.pendingPickup.filter(p => p.id !== item.id);
                         alert(`"${item.name}" has been marked as collected and the user has been notified.`);
                     } catch (error) {
+                        console.error("Error marking as picked up:", error);
                         alert("Failed to update status.");
                     }
                 },
@@ -268,24 +208,7 @@
                     return timestamp.toDate().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
                 }
             }
-        });
-
-        const vm = app.mount('#app');
-
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
-        firebase.auth().onAuthStateChanged(user => {
-            if (user) {
-                vm.isAuthenticated = true;
-                vm.loginError = '';
-                vm.loginEmail = '';
-                vm.loginPassword = '';
-                vm.initData();
-            } else {
-                vm.isAuthenticated = false;
-            }
-        });
+        }).mount('#reportApp');
     </script>
 </body>
 </html>
