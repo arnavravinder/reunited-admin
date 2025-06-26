@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Reunited</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --darker-bg: #1a1f2e; --dark-bg: #1e222d; --light-bg: #292E3D;
+            --text-color: #f8f9fa; --text-secondary: #adb5bd; --accent-color: #6e7fff;
+            --accent-color-dark: #5867ff; --success: #28a745; --danger: #dc3545; --warning: #ffc107;
+        }
+        body { font-family: 'Work Sans', sans-serif; background-color: var(--darker-bg); color: var(--text-color); margin: 0; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { background-color: var(--light-bg); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 100; }
+        .logo { font-family: 'Kanit', sans-serif; font-size: 1.5rem; color: var(--text-color); text-decoration: none; }
+        nav { display: flex; align-items: center; }
+        nav a { color: var(--text-secondary); text-decoration: none; margin-left: 20px; transition: color 0.2s; font-weight: 500; }
+        nav a.active, nav a:hover { color: var(--accent-color); }
+        h1, h2 { font-family: 'Kanit', sans-serif; }
+        .loading-spinner { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; }
+        .spinner { width: 50px; height: 50px; border: 4px solid rgba(255, 255, 255, 0.2); border-radius: 50%; border-top-color: var(--accent-color); animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .approval-container { background-color: var(--light-bg); border-radius: 10px; padding: 20px; margin-bottom: 30px; }
+        .approval-container h2 { border-bottom: 1px solid var(--dark-bg); padding-bottom: 15px; margin-top: 0; }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid var(--dark-bg); }
+        th { font-family: 'Kanit', sans-serif; font-weight: 500; background-color: var(--dark-bg); }
+        tr:last-child td { border-bottom: none; }
+        .btn-sm { padding: 5px 10px; font-size: 0.8rem; border-radius: 5px; cursor: pointer; border: none; }
+        .btn-approve { background-color: var(--success); color: white; }
+        .btn-deny { background-color: var(--danger); color: white; margin-left: 5px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        .stat-card { background-color: var(--light-bg); padding: 25px; border-radius: 10px; text-align: center; border-left: 5px solid var(--accent-color); }
+        .stat-card i { font-size: 2rem; color: var(--accent-color); margin-bottom: 15px; }
+        .stat-card h3 { margin: 0; font-size: 2.5rem; }
+        .stat-card p { margin: 5px 0 0; color: var(--text-secondary); }
+        .category-stats .category-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--dark-bg); }
+        .category-stats .category-item:last-child { border-bottom: none; }
+        .match-container { background-color: var(--light-bg); padding: 30px; border-radius: 10px; }
+        .match-stack { position: relative; width: 100%; max-width: 500px; height: 550px; margin: 20px auto; }
+        .match-card { background-color: var(--dark-bg); border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); position: absolute; width: 100%; height: 100%; cursor: grab; user-select: none; transition: transform 0.3s ease, opacity 0.3s ease; display: flex; flex-direction: column; overflow: hidden; }
+        .match-card.dragging { cursor: grabbing; transition: none; }
+        .match-content { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; gap: 20px; }
+        .item-section { border: 1px solid var(--light-bg); padding: 15px; border-radius: 8px; }
+        .item-section h4 { margin: 0 0 10px; color: var(--accent-color); display: flex; align-items: center; gap: 10px; }
+        .item-details p { margin: 5px 0; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.4; }
+        .item-details strong { color: var(--text-color); }
+        .swipe-overlay { position: absolute; top: 20px; right: 20px; font-size: 2rem; font-weight: bold; text-transform: uppercase; border: 4px solid; padding: 5px 15px; border-radius: 10px; opacity: 0; transform: rotate(15deg); pointer-events: none; }
+        .swipe-overlay.approve { color: var(--success); border-color: var(--success); }
+        .swipe-overlay.deny { color: var(--danger); border-color: var(--danger); transform: rotate(-15deg); left: 20px; right: auto; }
+        .match-actions { display: flex; justify-content: center; gap: 30px; margin-top: 20px; }
+        .action-button { background-color: #fff; border: 1px solid #ddd; width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; font-size: 1.5rem; }
+        .action-button:hover { transform: scale(1.1); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .action-button.deny { color: var(--danger); }
+        .action-button.approve { color: var(--success); }
+        .no-items, .no-matches { text-align: center; padding: 50px; color: var(--text-secondary); }
+        .no-items i, .no-matches i { font-size: 3rem; margin-bottom: 20px; }
+        .login-screen { display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: var(--darker-bg); }
+        .login-box { background-color: var(--light-bg); padding: 40px; border-radius: 10px; width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: center; }
+        .login-box .logo { font-size: 2rem; margin-bottom: 20px; display: inline-block; text-decoration: none; color: var(--text-color); }
+        .login-box p { color: var(--text-secondary); margin-bottom: 30px; }
+        .login-box .form-group { text-align: left; margin-bottom: 20px; }
+        .login-box label { display: block; margin-bottom: 8px; font-weight: 500; }
+        .login-box input { width: 100%; padding: 12px; border-radius: 5px; border: 1px solid var(--dark-bg); background-color: var(--dark-bg); color: var(--text-color); font-size: 1rem; box-sizing: border-box; }
+        .login-error { color: var(--danger); background-color: rgba(220, 53, 69, 0.1); border: 1px solid var(--danger); padding: 10px; border-radius: 5px; margin-top: 20px; text-align: center; }
+        nav .logout-button { background-color: var(--accent-color); color: white; padding: 8px 15px; border-radius: 5px; margin-left: 20px; text-decoration: none; font-weight: 500; transition: background-color 0.2s; }
+        nav .logout-button:hover { background-color: var(--accent-color-dark); color: white; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div v-if="!isAuthenticated" class="login-screen">
+            <div class="login-box">
+                <a href="#" class="logo">Reunited Admin</a>
+                <p>Please sign in to access the dashboard.</p>
+                <form @submit.prevent="handleLogin">
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" v-model="loginEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" v-model="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn">Sign In</button>
+                    <div v-if="loginError" class="login-error">{{ loginError }}</div>
+                </form>
+            </div>
+        </div>
+        
+        <div v-if="isAuthenticated">
+            <div v-if="isLoading" class="loading-spinner"><div class="spinner"></div></div>
+
+            <header>
+                <a href="dashboard.html" class="logo">Reunited Admin</a>
+                <nav>
+                    <a href="dashboard.html" class="active">Dashboard</a>
+                    <a href="add_item.html">Add Item</a>
+                    <a href="item_log.html">Item Log</a>
+                    <a href="daily_report.html">Daily Report</a>
+                    <a href="#" @click.prevent="handleLogout" class="logout-button">Sign Out</a>
+                </nav>
+            </header>
+    
+            <div class="container">
+                <h1>Dashboard</h1>
+    
+                <div v-if="!dataLoaded" class="loading-spinner"><div class="spinner"></div></div>
+    
+                <div v-else>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <i class="fas fa-box-open"></i>
+                            <h3>{{ stats.totalFound }}</h3>
+                            <p>Total Items Found (Unclaimed)</p>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-search"></i>
+                            <h3>{{ stats.totalLost }}</h3>
+                            <p>Total Items Reported Lost</p>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-check-circle"></i>
+                            <h3>{{ stats.totalClaimed }}</h3>
+                            <p>Total Items Claimed</p>
+                        </div>
+                        <div class="stat-card category-stats">
+                            <i class="fas fa-tags"></i>
+                            <p style="margin-bottom: 15px; font-weight: bold;">Items by Category</p>
+                            <div v-if="Object.keys(stats.byCategory).length > 0">
+                                <div v-for="(count, category) in stats.byCategory" :key="category" class="category-item">
+                                    <span>{{ category }}</span>
+                                    <strong>{{ count }}</strong>
+                                </div>
+                            </div>
+                            <p v-else>No items found.</p>
+                        </div>
+                    </div>
+    
+                    <div class="approval-container">
+                        <h2>Items Pending Approval ({{ pendingItems.length }})</h2>
+                        <div v-if="pendingItems.length > 0" class="table-container">
+                            <table>
+                                <thead><tr><th>Name</th><th>Category</th><th>Location</th><th>Reported By</th><th>Actions</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="item in pendingItems" :key="item.id">
+                                        <td>{{ item.name }}</td><td>{{ item.category }}</td><td>{{ item.location }}</td><td>{{ item.reportedByName }}</td>
+                                        <td>
+                                            <button class="btn-sm btn-approve" @click="approveItem(item)">Approve</button>
+                                            <button class="btn-sm btn-deny" @click="denyItem(item)">Deny</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div v-else class="no-items"><p>No items are currently pending approval.</p></div>
+                    </div>
+        
+                    <div class="match-container">
+                        <h2>Potential Item Matches</h2>
+                        <div v-if="isMatching" class="loading-spinner"><div class="spinner"></div><p style="margin-top: 10px; color: white;">Finding matches...</p></div>
+                        <div v-else-if="potentialMatches.length > 0">
+                            <div class="match-stack">
+                                <div v-for="(match, index) in potentialMatches.slice(currentIndex, currentIndex + 3).reverse()" :key="match.foundItem.id"
+                                    class="match-card"
+                                    :style="{ zIndex: potentialMatches.length - (currentIndex + index), transform: index === 0 ? dragTransform : `scale(${1 - (index * 0.05)}) translateY(${-index * 15}px)`, opacity: index < 2 ? 1 : 0 }"
+                                    @mousedown="index === 0 ? startDrag($event, currentIndex) : null"
+                                    @touchstart="index === 0 ? startDrag($event, currentIndex) : null">
+                                    
+                                    <div class="swipe-overlay approve" :style="{ opacity: approveOpacity }">Approve</div>
+                                    <div class="swipe-overlay deny" :style="{ opacity: denyOpacity }">Deny</div>
+        
+                                    <div class="match-content">
+                                        <div class="item-section">
+                                            <h4><i class="fas fa-search"></i> Lost Item Report</h4>
+                                            <div class="item-details">
+                                                <p><strong>Name:</strong> {{ match.lostItem.name }}</p>
+                                                <p><strong>Description:</strong> {{ match.lostItem.description }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="item-section">
+                                            <h4><i class="fas fa-box-open"></i> Found Item</h4>
+                                            <div class="item-details">
+                                                <p><strong>Name:</strong> {{ match.foundItem.name }}</p>
+                                                <p><strong>Description:</strong> {{ match.foundItem.description }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                             <div class="match-actions">
+                                <button class="action-button deny" @click="denyMatch"><i class="fas fa-times"></i></button>
+                                <button class="action-button approve" @click="approveMatch"><i class="fas fa-check"></i></button>
+                            </div>
+                        </div>
+                        <div v-else class="no-matches">
+                            <i class="fas fa-thumbs-up"></i>
+                            <h3>All Clear!</h3>
+                            <p>There are no new potential matches to review at this time.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        window.env = {
+            FIREBASE_API_KEY: "YOUR_API_KEY",
+            FIREBASE_AUTH_DOMAIN: "YOUR_AUTH_DOMAIN",
+            FIREBASE_PROJECT_ID: "YOUR_PROJECT_ID",
+            FIREBASE_STORAGE_BUCKET: "YOUR_STORAGE_BUCKET",
+            FIREBASE_MESSAGING_SENDER_ID: "YOUR_MESSAGING_SENDER_ID",
+            FIREBASE_APP_ID: "YOUR_APP_ID"
+        };
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: window.env.FIREBASE_API_KEY,
+            authDomain: window.env.FIREBASE_AUTH_DOMAIN,
+            projectId: window.env.FIREBASE_PROJECT_ID,
+            storageBucket: window.env.FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: window.env.FIREBASE_MESSAGING_SENDER_ID,
+            appId: window.env.FIREBASE_APP_ID
+        };
+        
+        const AI_ENDPOINT_URL = "https://ai.hackclub.com/chat/completions";
+
+        const app = Vue.createApp({
+            data() {
+                return {
+                    isAuthenticated: false,
+                    loginEmail: '',
+                    loginPassword: '',
+                    loginError: '',
+                    isLoading: true,
+                    dataLoaded: false,
+                    isMatching: false,
+                    stats: { totalFound: 0, totalLost: 0, totalClaimed: 0, byCategory: {} },
+                    pendingItems: [],
+                    potentialMatches: [],
+                    currentIndex: 0,
+                    isDragging: false,
+                    startX: 0,
+                    currentX: 0,
+                    dragTransform: '',
+                    approveOpacity: 0,
+                    denyOpacity: 0
+                };
+            },
+            mounted() {
+                window.addEventListener('mousemove', this.onDrag);
+                window.addEventListener('mouseup', this.endDrag);
+                window.addEventListener('touchmove', this.onDrag, { passive: false });
+                window.addEventListener('touchend', this.endDrag);
+            },
+            beforeUnmount() {
+                window.removeEventListener('mousemove', this.onDrag);
+                window.removeEventListener('mouseup', this.endDrag);
+                window.removeEventListener('touchmove', this.onDrag);
+                window.removeEventListener('touchend', this.endDrag);
+            },
+            methods: {
+                handleLogin() {
+                    this.loginError = '';
+                    firebase.auth().signInWithEmailAndPassword(this.loginEmail, this.loginPassword)
+                        .catch(error => {
+                            this.loginError = "Login failed. Please check your email and password.";
+                        });
+                },
+                handleLogout() {
+                    firebase.auth().signOut();
+                },
+                initData() {
+                    this.initializeDashboard();
+                },
+                async initializeDashboard() {
+                    this.isLoading = true;
+                    try {
+                        const [foundItemsSnap, lostItemsSnap, pendingItemsSnap] = await Promise.all([
+                            db.collection('items').get(),
+                            db.collection('lostItems').where('status', '==', 'active').get(),
+                            db.collection('items').where('status', '==', 'pending_approval').get()
+                        ]);
+                        
+                        this.pendingItems = pendingItemsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        this.processStats(foundItemsSnap, lostItemsSnap);
+                        this.dataLoaded = true;
+                        
+                        this.isMatching = true;
+                        await this.findPotentialMatches(foundItemsSnap, lostItemsSnap);
+
+                    } catch(error) {
+                        alert("Failed to load dashboard data. Please check the console.");
+                    } finally {
+                        this.isLoading = false;
+                        this.isMatching = false;
+                    }
+                },
+                processStats(foundItemsSnap, lostItemsSnap) {
+                    const byCategory = {};
+                    let totalFound = 0;
+                    let totalClaimed = 0;
+
+                    foundItemsSnap.forEach(doc => {
+                        const item = doc.data();
+                        if (item.status === 'available' && !item.claimed) {
+                           totalFound++;
+                           byCategory[item.category] = (byCategory[item.category] || 0) + 1;
+                        } else if(item.claimed) {
+                            totalClaimed++;
+                        }
+                    });
+                    this.stats = { totalFound, totalClaimed, totalLost: lostItemsSnap.size, byCategory };
+                },
+                extractJson(str) {
+                    const match = str.match(/\[.*\]/s);
+                    return match ? match[0] : null;
+                },
+                async findPotentialMatches(foundItemsSnap, lostItemsSnap) {},
+                async approveItem(item) {},
+                async denyItem(item) {},
+                async approveMatch() {},
+                denyMatch() {
+                    this.nextCard();
+                },
+                nextCard() {
+                    if (this.currentIndex < this.potentialMatches.length) {
+                        this.currentIndex++;
+                    }
+                },
+                startDrag(e, index) {},
+                onDrag(e) {},
+                endDrag(e) {},
+            }
+        });
+
+        const vm = app.mount('#app');
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                vm.isAuthenticated = true;
+                vm.loginError = '';
+                vm.loginEmail = '';
+                vm.loginPassword = '';
+                vm.initData();
+            } else {
+                vm.isAuthenticated = false;
+                vm.dataLoaded = false;
+                vm.isLoading = true;
+            }
+        });
+    </script>
+</body>
+</html>

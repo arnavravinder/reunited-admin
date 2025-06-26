@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin: Add Item - Reunited</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --darker-bg: #1a1f2e; --dark-bg: #1e222d; --light-bg: #292E3D;
+            --text-color: #f8f9fa; --text-secondary: #adb5bd; --accent-color: #6e7fff;
+            --accent-color-dark: #5867ff; --success: #28a745; --danger: #dc3545;
+        }
+        body { font-family: 'Work Sans', sans-serif; background-color: var(--darker-bg); color: var(--text-color); margin: 0; }
+        .container { max-width: 700px; margin: 0 auto; padding: 20px; }
+        header { background-color: var(--light-bg); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        .logo { font-family: 'Kanit', sans-serif; font-size: 1.5rem; color: var(--text-color); text-decoration: none; }
+        nav { display: flex; align-items: center; }
+        nav a { color: var(--text-secondary); text-decoration: none; margin-left: 20px; transition: color 0.2s; font-weight: 500;}
+        nav a.active, nav a:hover { color: var(--accent-color); }
+        h1 { font-family: 'Kanit', sans-serif; }
+        .form-container { background-color: var(--light-bg); padding: 30px; border-radius: 10px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 12px; border-radius: 5px; border: 1px solid var(--dark-bg);
+            background-color: var(--dark-bg); color: var(--text-color); font-size: 1rem; box-sizing: border-box;
+        }
+        .form-group textarea { min-height: 120px; resize: vertical; }
+        .image-upload-box {
+            border: 2px dashed var(--text-secondary); border-radius: 10px; padding: 30px; text-align: center;
+            cursor: pointer; transition: background-color 0.2s, border-color 0.2s;
+        }
+        .image-upload-box:hover { background-color: var(--dark-bg); border-color: var(--accent-color); }
+        .image-upload-box i { font-size: 2rem; color: var(--text-secondary); margin-bottom: 10px; }
+        .image-upload-box p { margin: 0; color: var(--text-secondary); }
+        input[type="file"] { display: none; }
+        .image-preview { margin-top: 20px; text-align: center; }
+        .image-preview img { max-width: 100%; max-height: 300px; border-radius: 10px; border: 2px solid var(--dark-bg); }
+        .btn {
+            display: inline-block; width: 100%; padding: 15px; background-color: var(--accent-color);
+            color: white; border: none; border-radius: 5px; font-size: 1.1rem; cursor: pointer;
+            transition: background-color 0.2s; text-align: center;
+        }
+        .btn:hover { background-color: var(--accent-color-dark); }
+        .btn:disabled { background-color: var(--text-secondary); cursor: not-allowed; }
+        .success-message {
+            margin-top: 20px; padding: 15px; background-color: rgba(40, 167, 69, 0.2);
+            color: var(--success); border: 1px solid var(--success); border-radius: 5px; text-align: center;
+        }
+        .login-screen { display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: var(--darker-bg); }
+        .login-box { background-color: var(--light-bg); padding: 40px; border-radius: 10px; width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: center; }
+        .login-box .logo { font-size: 2rem; margin-bottom: 20px; display: inline-block; text-decoration: none; color: var(--text-color); }
+        .login-box p { color: var(--text-secondary); margin-bottom: 30px; }
+        .login-box .form-group { text-align: left; margin-bottom: 20px; }
+        .login-box label { display: block; margin-bottom: 8px; font-weight: 500; }
+        .login-box input { width: 100%; padding: 12px; border-radius: 5px; border: 1px solid var(--dark-bg); background-color: var(--dark-bg); color: var(--text-color); font-size: 1rem; box-sizing: border-box; }
+        .login-error { color: var(--danger); background-color: rgba(220, 53, 69, 0.1); border: 1px solid var(--danger); padding: 10px; border-radius: 5px; margin-top: 20px; text-align: center; }
+        nav .logout-button { background-color: var(--accent-color); color: white; padding: 8px 15px; border-radius: 5px; margin-left: 20px; text-decoration: none; font-weight: 500; transition: background-color 0.2s; }
+        nav .logout-button:hover { background-color: var(--accent-color-dark); color: white; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div v-if="!isAuthenticated" class="login-screen">
+            <div class="login-box">
+                <a href="#" class="logo">Reunited Admin</a>
+                <p>Please sign in to access the dashboard.</p>
+                <form @submit.prevent="handleLogin">
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" v-model="loginEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" v-model="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn">Sign In</button>
+                    <div v-if="loginError" class="login-error">{{ loginError }}</div>
+                </form>
+            </div>
+        </div>
+
+        <div v-if="isAuthenticated">
+            <header>
+                <a href="dashboard.html" class="logo">Reunited Admin</a>
+                <nav>
+                    <a href="dashboard.html">Dashboard</a>
+                    <a href="add_item.html" class="active">Add Item</a>
+                    <a href="item_log.html">Item Log</a>
+                    <a href="daily_report.html">Daily Report</a>
+                    <a href="#" @click.prevent="handleLogout" class="logout-button">Sign Out</a>
+                </nav>
+            </header>
+    
+            <div class="container">
+                <h1>Add a New Found Item</h1>
+                <div class="form-container">
+                    <form @submit.prevent="submitItem">
+                        <div class="form-group">
+                            <label for="name">Item Name</label>
+                            <input type="text" id="name" v-model="newItem.name" required placeholder="e.g., Black Nike Hoodie">
+                        </div>
+                        <div class="form-group">
+                            <label for="category">Category</label>
+                            <select id="category" v-model="newItem.category" required>
+                                <option disabled value="">Select a category</option>
+                                <option>Apparel</option>
+                                <option>Electronics</option>
+                                <option>Uniform</option>
+                                <option>Water Bottle</option>
+                                <option>Sports Equipment</option>
+                                <option>Accessories</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="location">Location Found</label>
+                            <input type="text" id="location" v-model="newItem.location" required placeholder="e.g., Main Building, 2nd Floor">
+                        </div>
+                        <div class="form-group">
+                            <label for="description">Description</label>
+                            <textarea id="description" v-model="newItem.description" required placeholder="Add details like color, size, brand, and any identifying marks."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Item Photo</label>
+                            <input type="file" id="photo" @change="handleFileUpload" accept="image/*" capture="camera">
+                            <label for="photo" class="image-upload-box">
+                                <i class="fas fa-camera"></i>
+                                <p>Tap to open camera or browse files</p>
+                            </label>
+                        </div>
+                        <div v-if="previewImage" class="image-preview">
+                            <img :src="previewImage" alt="Item Preview">
+                        </div>
+                        
+                        <div v-if="successMessage" class="success-message">
+                            {{ successMessage }}
+                        </div>
+    
+                        <button type="submit" class="btn" :disabled="isSubmitting">
+                            <span v-if="isSubmitting">Submitting...</span>
+                            <span v-else>Add Item to Database</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        window.env = {
+            FIREBASE_API_KEY: "YOUR_API_KEY",
+            FIREBASE_AUTH_DOMAIN: "YOUR_AUTH_DOMAIN",
+            FIREBASE_PROJECT_ID: "YOUR_PROJECT_ID",
+            FIREBASE_STORAGE_BUCKET: "YOUR_STORAGE_BUCKET",
+            FIREBASE_MESSAGING_SENDER_ID: "YOUR_MESSAGING_SENDER_ID",
+            FIREBASE_APP_ID: "YOUR_APP_ID"
+        };
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: window.env.FIREBASE_API_KEY,
+            authDomain: window.env.FIREBASE_AUTH_DOMAIN,
+            projectId: window.env.FIREBASE_PROJECT_ID,
+            storageBucket: window.env.FIREBASE_STORAGE_BUCKET,
+            messagingSenderId: window.env.FIREBASE_MESSAGING_SENDER_ID,
+            appId: window.env.FIREBASE_APP_ID
+        };
+        
+        const app = Vue.createApp({
+            data() {
+                return {
+                    isAuthenticated: false,
+                    loginEmail: '',
+                    loginPassword: '',
+                    loginError: '',
+                    newItem: {
+                        name: '',
+                        category: '',
+                        location: '',
+                        description: '',
+                        imageFile: null
+                    },
+                    previewImage: null,
+                    isSubmitting: false,
+                    successMessage: ''
+                };
+            },
+            methods: {
+                handleLogin() {
+                    this.loginError = '';
+                    firebase.auth().signInWithEmailAndPassword(this.loginEmail, this.loginPassword)
+                        .catch(error => {
+                            this.loginError = "Login failed. Please check your email and password.";
+                        });
+                },
+                handleLogout() {
+                    firebase.auth().signOut();
+                },
+                handleFileUpload(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.newItem.imageFile = file;
+                        this.previewImage = URL.createObjectURL(file);
+                    }
+                },
+                generateClaimCode() {
+                    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                    let code = '';
+                    for (let i = 0; i < 6; i++) {
+                        code += chars.charAt(Math.floor(Math.random() * chars.length));
+                    }
+                    return code;
+                },
+                generateSearchTerms(text) {
+                    if (!text) return [];
+                    const stopWords = new Set(['a', 'an', 'the', 'is', 'in', 'at', 'on', 'of', 'to', 'for', 'and', 'or', 'it', 'its', 'with']);
+                    return [...new Set(text.toLowerCase().split(/\s+/).filter(term => term.length > 2 && !stopWords.has(term)))];
+                },
+                async submitItem() {
+                    this.isSubmitting = true;
+                    this.successMessage = '';
+                    try {
+                        let imageUrl = '';
+                        if (this.newItem.imageFile) {
+                            const filePath = `items/${Date.now()}_${this.newItem.imageFile.name}`;
+                            const fileRef = storage.ref(filePath);
+                            await fileRef.put(this.newItem.imageFile);
+                            imageUrl = await fileRef.getDownloadURL();
+                        }
+
+                        const itemData = {
+                            name: this.newItem.name,
+                            category: this.newItem.category,
+                            location: this.newItem.location,
+                            description: this.newItem.description,
+                            image: imageUrl,
+                            dateFound: firebase.firestore.FieldValue.serverTimestamp(),
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            claimed: false,
+                            claimId: null,
+                            claimCode: this.generateClaimCode(),
+                            status: 'available',
+                            searchTerms: this.generateSearchTerms(`${this.newItem.name} ${this.newItem.description} ${this.newItem.category}`)
+                        };
+
+                        await db.collection('items').add(itemData);
+                        
+                        this.successMessage = `Successfully added "${this.newItem.name}" to the database!`;
+                        this.resetForm();
+                    } catch (error) {
+                        alert("Failed to add item. Please check the console for errors.");
+                    } finally {
+                        this.isSubmitting = false;
+                    }
+                },
+                resetForm() {
+                    this.newItem = { name: '', category: '', location: '', description: '', imageFile: null };
+                    this.previewImage = null;
+                }
+            }
+        });
+
+        const vm = app.mount('#app');
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+        
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                vm.isAuthenticated = true;
+                vm.loginError = '';
+                vm.loginEmail = '';
+                vm.loginPassword = '';
+            } else {
+                vm.isAuthenticated = false;
+            }
+        });
+    </script>
+</body>
+</html>
