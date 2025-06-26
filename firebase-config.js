@@ -1,8 +1,19 @@
+const getEnvVar = (key, defaultValue = null) => {
+  if (window.env && window.env[key]) {
+    return window.env[key];
+  }
+  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    return process.env[key];
+  }
+  return defaultValue;
+};
+
 const firebaseConfig = {
-    apiKey: "AIzaSyC_SXeIsbmw97u2aklsjA0gM5WWO1_dArI",
-    authDomain: "reunited-web.firebaseapp.com",
-    projectId: "reunited-web",
-    storageBucket: "reunited-web.firebasestorage.app",
-    messagingSenderId: "1045353786748",
-    appId: "1:1045353786748:web:df81f8d326d9508d0848f9"
+  apiKey: getEnvVar('FIREBASE_API_KEY'),
+  authDomain: getEnvVar('FIREBASE_AUTH_DOMAIN'),
+  databaseURL: getEnvVar('FIREBASE_DATABASE_URL'),
+  projectId: getEnvVar('FIREBASE_PROJECT_ID'),
+  storageBucket: getEnvVar('FIREBASE_STORAGE_BUCKET'),
+  messagingSenderId: getEnvVar('FIREBASE_MESSAGING_SENDER_ID'),
+  appId: getEnvVar('FIREBASE_APP_ID')
 };
