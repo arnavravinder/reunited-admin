@@ -13,7 +13,11 @@
             --text-color: #f8f9fa; --text-secondary: #adb5bd; --accent-color: #6e7fff;
             --accent-color-dark: #5867ff; --danger: #dc3545;
         }
-        body { font-family: 'Work Sans', sans-serif; background-color: var(--darker-bg); color: var(--text-color); margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        body { 
+            font-family: 'Work Sans', sans-serif; background-color: var(--darker-bg); 
+            color: var(--text-color); margin: 0; display: none;
+            justify-content: center; align-items: center; height: 100vh;
+        }
         .login-container { width: 100%; max-width: 400px; padding: 20px; }
         .login-box { background-color: var(--light-bg); padding: 40px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         h1 { font-family: 'Kanit', sans-serif; text-align: center; margin-bottom: 30px; }
@@ -71,9 +75,6 @@
             const password = passwordInput.value;
 
             firebase.auth().signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    window.location.href = 'index.html';
-                })
                 .catch((error) => {
                     errorMessageDiv.textContent = error.message;
                     errorMessageDiv.style.display = 'block';

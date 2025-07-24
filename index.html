@@ -8,29 +8,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="shared.css">
     <style>
-        :root {
-            --darker-bg: #1a1f2e; --dark-bg: #1e222d; --light-bg: #292E3D;
-            --text-color: #f8f9fa; --text-secondary: #adb5bd; --accent-color: #6e7fff;
-            --accent-color-dark: #5867ff; --success: #28a745; --danger: #dc3545; --warning: #ffc107;
-        }
-        body { font-family: 'Work Sans', sans-serif; background-color: var(--darker-bg); color: var(--text-color); margin: 0; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        header { background-color: var(--light-bg); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 100; }
-        .logo { font-family: 'Kanit', sans-serif; font-size: 1.5rem; color: var(--text-color); text-decoration: none; }
-        nav a { color: var(--text-secondary); text-decoration: none; margin-left: 20px; transition: color 0.2s; font-weight: 500; }
-        nav a.active, nav a:hover { color: var(--accent-color); }
-        h1, h2 { font-family: 'Kanit', sans-serif; }
-        .loading-spinner { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; }
-        .spinner { width: 50px; height: 50px; border: 4px solid rgba(255, 255, 255, 0.2); border-radius: 50%; border-top-color: var(--accent-color); animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
         .approval-container { background-color: var(--light-bg); border-radius: 10px; padding: 20px; margin-bottom: 30px; }
         .approval-container h2 { border-bottom: 1px solid var(--dark-bg); padding-bottom: 15px; margin-top: 0; }
-        .table-container { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid var(--dark-bg); }
-        th { font-family: 'Kanit', sans-serif; font-weight: 500; background-color: var(--dark-bg); }
-        tr:last-child td { border-bottom: none; }
         .btn-sm { padding: 5px 10px; font-size: 0.8rem; border-radius: 5px; cursor: pointer; border: none; }
         .btn-approve { background-color: var(--success); color: white; }
         .btn-deny { background-color: var(--danger); color: white; margin-left: 5px; }
@@ -58,35 +39,32 @@
         .action-button:hover { transform: scale(1.1); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
         .action-button.deny { color: var(--danger); }
         .action-button.approve { color: var(--success); }
-        .no-items, .no-matches { text-align: center; padding: 50px; color: var(--text-secondary); }
-        .no-items i, .no-matches i { font-size: 3rem; margin-bottom: 20px; }
+        .no-matches i { font-size: 3rem; margin-bottom: 20px; }
     </style>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
-    <script src="firebase-config.js"></script>
-    <script src="auth.js"></script>
 </head>
 <body>
     <div id="adminApp">
         <header>
             <a href="index.html" class="logo">Reunited Admin</a>
-            <nav>
+            <nav class="nav-menu" id="nav-menu">
                 <a href="index.html" class="active">Dashboard</a>
                 <a href="add_item.html">Add Item</a>
                 <a href="item_log.html">Item Log</a>
                 <a href="daily_report.html">Daily Report</a>
+                <a href="#" id="logout-link">Logout</a>
             </nav>
+            <div class="hamburger" id="hamburger-menu">
+                <i class="fas fa-bars"></i>
+            </div>
         </header>
 
-        <div class="container">
+        <main class="container">
             <h1>Dashboard</h1>
 
             <div v-if="isLoading" class="loading-spinner"><div class="spinner"></div></div>
 
             <div v-else>
-                <div class="stats-grid">
+                <section class="stats-grid">
                     <div class="stat-card">
                         <i class="fas fa-box-open"></i>
                         <h3>{{ stats.totalFound }}</h3>
@@ -113,9 +91,9 @@
                         </div>
                         <p v-else>No items found.</p>
                     </div>
-                </div>
+                </section>
 
-                <div class="approval-container">
+                <section class="approval-container">
                     <h2>Items Pending Approval ({{ pendingItems.length }})</h2>
                     <div v-if="pendingItems.length > 0" class="table-container">
                         <table>
@@ -132,9 +110,9 @@
                         </table>
                     </div>
                     <div v-else class="no-items"><p>No items are currently pending approval.</p></div>
-                </div>
+                </section>
 
-                <div class="match-container">
+                <section class="match-container">
                     <h2>Potential Item Matches</h2>
                     <div v-if="isMatching" class="loading-spinner"><div class="spinner"></div><p style="margin-top: 10px; color: white;">Finding matches...</p></div>
                     <div v-else-if="potentialMatches.length > 0">
@@ -176,11 +154,16 @@
                         <h3>All Clear!</h3>
                         <p>There are no new potential matches to review at this time.</p>
                     </div>
-                </div>
+                </section>
             </div>
-        </div>
+        </main>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
     <script>
         const AI_ENDPOINT_URL = "https://ai.hackclub.com/chat/completions";
@@ -428,7 +411,7 @@
                         this.denyOpacity = opacity; this.approveOpacity = 0;
                     }
                 },
-                endDrag(e) {
+                endDrag() {
                     if (!this.isDragging) return;
                     this.isDragging = false;
                     const diffX = this.currentX - this.startX;
