@@ -22,24 +22,6 @@
         .stat-card p { margin: 5px 0 0; color: var(--text-secondary); }
         .category-stats .category-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--dark-bg); }
         .category-stats .category-item:last-child { border-bottom: none; }
-        .match-container { background-color: var(--light-bg); padding: 30px; border-radius: 10px; }
-        .match-stack { position: relative; width: 100%; max-width: 500px; height: 550px; margin: 20px auto; }
-        .match-card { background-color: var(--dark-bg); border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); position: absolute; width: 100%; height: 100%; cursor: grab; user-select: none; transition: transform 0.3s ease, opacity 0.3s ease; display: flex; flex-direction: column; overflow: hidden; }
-        .match-card.dragging { cursor: grabbing; transition: none; }
-        .match-content { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; gap: 20px; }
-        .item-section { border: 1px solid var(--light-bg); padding: 15px; border-radius: 8px; }
-        .item-section h4 { margin: 0 0 10px; color: var(--accent-color); display: flex; align-items: center; gap: 10px; }
-        .item-details p { margin: 5px 0; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.4; }
-        .item-details strong { color: var(--text-color); }
-        .swipe-overlay { position: absolute; top: 20px; right: 20px; font-size: 2rem; font-weight: bold; text-transform: uppercase; border: 4px solid; padding: 5px 15px; border-radius: 10px; opacity: 0; transform: rotate(15deg); pointer-events: none; }
-        .swipe-overlay.approve { color: var(--success); border-color: var(--success); }
-        .swipe-overlay.deny { color: var(--danger); border-color: var(--danger); transform: rotate(-15deg); left: 20px; right: auto; }
-        .match-actions { display: flex; justify-content: center; gap: 30px; margin-top: 20px; }
-        .action-button { background-color: #fff; border: 1px solid #ddd; width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; font-size: 1.5rem; }
-        .action-button:hover { transform: scale(1.1); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-        .action-button.deny { color: var(--danger); }
-        .action-button.approve { color: var(--success); }
-        .no-matches i { font-size: 3rem; margin-bottom: 20px; }
     </style>
 </head>
 <body>
@@ -112,49 +94,6 @@
                     <div v-else class="no-items"><p>No items are currently pending approval.</p></div>
                 </section>
 
-                <section class="match-container">
-                    <h2>Potential Item Matches</h2>
-                    <div v-if="isMatching" class="loading-spinner"><div class="spinner"></div><p style="margin-top: 10px; color: white;">Finding matches...</p></div>
-                    <div v-else-if="potentialMatches.length > 0">
-                        <div class="match-stack">
-                            <div v-for="(match, index) in potentialMatches.slice(currentIndex, currentIndex + 3).reverse()" :key="match.foundItem.id"
-                                class="match-card"
-                                :style="{ zIndex: potentialMatches.length - (currentIndex + index), transform: index === 0 ? dragTransform : `scale(${1 - (index * 0.05)}) translateY(${-index * 15}px)`, opacity: index < 2 ? 1 : 0 }"
-                                @mousedown="index === 0 ? startDrag($event, currentIndex) : null"
-                                @touchstart="index === 0 ? startDrag($event, currentIndex) : null">
-                                
-                                <div class="swipe-overlay approve" :style="{ opacity: approveOpacity }">Approve</div>
-                                <div class="swipe-overlay deny" :style="{ opacity: denyOpacity }">Deny</div>
-
-                                <div class="match-content">
-                                    <div class="item-section">
-                                        <h4><i class="fas fa-search"></i> Lost Item Report</h4>
-                                        <div class="item-details">
-                                            <p><strong>Name:</strong> {{ match.lostItem.name }}</p>
-                                            <p><strong>Description:</strong> {{ match.lostItem.description }}</p>
-                                        </div>
-                                    </div>
-                                    <div class="item-section">
-                                        <h4><i class="fas fa-box-open"></i> Found Item</h4>
-                                        <div class="item-details">
-                                            <p><strong>Name:</strong> {{ match.foundItem.name }}</p>
-                                            <p><strong>Description:</strong> {{ match.foundItem.description }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                         <div class="match-actions">
-                            <button class="action-button deny" @click="denyMatch"><i class="fas fa-times"></i></button>
-                            <button class="action-button approve" @click="approveMatch"><i class="fas fa-check"></i></button>
-                        </div>
-                    </div>
-                    <div v-else class="no-matches">
-                        <i class="fas fa-thumbs-up"></i>
-                        <h3>All Clear!</h3>
-                        <p>There are no new potential matches to review at this time.</p>
-                    </div>
-                </section>
             </div>
         </main>
     </div>
@@ -166,38 +105,18 @@
     <script src="auth.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
     <script>
-        const AI_ENDPOINT_URL = "https://ai.hackclub.com/chat/completions";
         const db = firebase.firestore();
 
         const app = Vue.createApp({
             data() {
                 return {
                     isLoading: true,
-                    isMatching: false,
                     stats: { totalFound: 0, totalLost: 0, totalClaimed: 0, byCategory: {} },
                     pendingItems: [],
-                    potentialMatches: [],
-                    currentIndex: 0,
-                    isDragging: false,
-                    startX: 0,
-                    currentX: 0,
-                    dragTransform: '',
-                    approveOpacity: 0,
-                    denyOpacity: 0
                 };
             },
             async mounted() {
                 await this.initializeDashboard();
-                window.addEventListener('mousemove', this.onDrag);
-                window.addEventListener('mouseup', this.endDrag);
-                window.addEventListener('touchmove', this.onDrag, { passive: false });
-                window.addEventListener('touchend', this.endDrag);
-            },
-            beforeUnmount() {
-                window.removeEventListener('mousemove', this.onDrag);
-                window.removeEventListener('mouseup', this.endDrag);
-                window.removeEventListener('touchmove', this.onDrag);
-                window.removeEventListener('touchend', this.endDrag);
             },
             methods: {
                 async initializeDashboard() {
@@ -211,16 +130,12 @@
                         
                         this.pendingItems = pendingItemsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                         this.processStats(foundItemsSnap, lostItemsSnap);
-                        
-                        this.isMatching = true;
-                        await this.findPotentialMatches(foundItemsSnap, lostItemsSnap);
 
                     } catch(error) {
                         console.error("Error initializing dashboard:", error);
                         alert("Failed to load dashboard data. Please check the console.");
                     } finally {
                         this.isLoading = false;
-                        this.isMatching = false;
                     }
                 },
                 processStats(foundItemsSnap, lostItemsSnap) {
@@ -238,99 +153,6 @@
                         }
                     });
                     this.stats = { totalFound, totalClaimed, totalLost: lostItemsSnap.size, byCategory };
-                },
-                extractJson(str) {
-                    const match = str.match(/\[.*\]/s);
-                    return match ? match[0] : null;
-                },
-                async findPotentialMatches(foundItemsSnap, lostItemsSnap) {
-                    const lostItems = new Map(lostItemsSnap.docs.map(doc => [doc.id, { id: doc.id, ...doc.data() }]));
-                    const availableFoundItems = new Map();
-                    foundItemsSnap.forEach(doc => {
-                        const item = doc.data();
-                        if (item.status === 'available' && !item.claimed) {
-                            availableFoundItems.set(doc.id, { id: doc.id, ...item });
-                        }
-                    });
-
-                    const prefilteredPairs = [];
-                    lostItems.forEach(lostItem => {
-                        availableFoundItems.forEach(foundItem => {
-                             if (lostItem.category === foundItem.category) {
-                                const commonTerms = (lostItem.searchTerms || []).filter(term => (foundItem.searchTerms || []).includes(term));
-                                if (commonTerms.length > 0) {
-                                     prefilteredPairs.push({
-                                        lostItem: { id: lostItem.id, description: `${lostItem.name} - ${lostItem.description}`},
-                                        foundItem: { id: foundItem.id, description: `${foundItem.name} - ${foundItem.description}`}
-                                    });
-                                }
-                            }
-                        });
-                    });
-                    
-                    if (prefilteredPairs.length === 0) {
-                        this.potentialMatches = [];
-                        return;
-                    }
-
-                    const CHUNK_SIZE = 20;
-                    const apiPromises = [];
-
-                    for (let i = 0; i < prefilteredPairs.length; i += CHUNK_SIZE) {
-                        const chunk = prefilteredPairs.slice(i, i + CHUNK_SIZE);
-                        const requestBody = {
-                            stream: false,
-                            messages: [
-                                {
-                                    role: 'system',
-                                    content: "You are an AI assistant that determines if a lost item and a found item are a match. Analyze the JSON array of item pairs provided by the user. Return ONLY a valid JSON array containing objects for the pairs that are highly likely to be a match. Each object must have 'lostItemId' and 'foundItemId'. Do not include unlikely matches or pairs with very generic descriptions. Do not include any explanatory text, greetings, or summaries in your response."
-                                },
-                                {
-                                    role: 'user',
-                                    content: `Here is the list of pairs to evaluate: ${JSON.stringify(chunk)}`
-                                }
-                            ]
-                        };
-                        
-                        const promise = fetch(AI_ENDPOINT_URL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(requestBody)
-                        }).then(response => {
-                            if (!response.ok) throw new Error(`AI API chunk failed with status: ${response.status}`);
-                            return response.json();
-                        }).then(data => {
-                            const content = data.choices[0]?.message?.content;
-                            if (!content) return [];
-                            const jsonString = this.extractJson(content);
-                            if (!jsonString) return [];
-                            try { return JSON.parse(jsonString); } catch (e) { return []; }
-                        }).catch(error => {
-                            console.error("Error with one AI batch:", error);
-                            return [];
-                        });
-                        apiPromises.push(promise);
-                    }
-
-                    try {
-                        const resultsFromChunks = await Promise.all(apiPromises);
-                        const allMatchedPairs = resultsFromChunks.flat();
-                        
-                        if (Array.isArray(allMatchedPairs) && allMatchedPairs.length > 0) {
-                            this.potentialMatches = allMatchedPairs.map(pair => ({
-                                lostItem: lostItems.get(pair.lostItemId),
-                                foundItem: availableFoundItems.get(pair.foundItemId)
-                            })).filter(match => match.lostItem && match.foundItem);
-                        } else {
-                            throw new Error("AI returned no valid matches, falling back.");
-                        }
-                    } catch (error) {
-                        console.warn(error.message);
-                        this.potentialMatches = prefilteredPairs.map(pair => ({
-                            lostItem: lostItems.get(pair.lostItem.id),
-                            foundItem: availableFoundItems.get(pair.foundItem.id)
-                        })).filter(match => match.lostItem && match.foundItem);
-                    }
                 },
                 async approveItem(item) {
                     try {
@@ -360,69 +182,6 @@
                         });
                         this.pendingItems = this.pendingItems.filter(p => p.id !== item.id);
                     } catch(e) { console.error("Error denying item:", e); alert("Failed to deny item."); }
-                },
-                async approveMatch() {
-                    if (this.currentIndex >= this.potentialMatches.length) return;
-                    const match = this.potentialMatches[this.currentIndex];
-                    try {
-                        await db.collection('notifications').add({
-                            userId: match.lostItem.userId,
-                            title: 'Potential Match Found for Your Lost Item!',
-                            message: `We think we found a match for your lost item: "${match.lostItem.name}". The found item is: "${match.foundItem.name}". Please review it on the search page.`,
-                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                            type: 'match_found', read: false, actionable: true,
-                            itemId: match.foundItem.id, lostItemId: match.lostItem.id
-                        });
-                        
-                        await db.collection('lostItems').doc(match.lostItem.id).update({ status: 'match_found' });
-
-                    } catch (error) {
-                        console.error("Error creating notification or updating status:", error);
-                    } finally {
-                        this.nextCard();
-                    }
-                },
-                denyMatch() {
-                    this.nextCard();
-                },
-                nextCard() {
-                    if (this.currentIndex < this.potentialMatches.length) {
-                        this.currentIndex++;
-                    }
-                },
-                startDrag(e, index) {
-                    if (index !== this.currentIndex) return;
-                    this.isDragging = true;
-                    this.startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-                    const card = e.currentTarget;
-                    if(card) card.classList.add('dragging');
-                },
-                onDrag(e) {
-                    if (!this.isDragging) return;
-                    e.preventDefault();
-                    this.currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-                    const diffX = this.currentX - this.startX;
-                    const rotation = diffX / 15;
-                    this.dragTransform = `translateX(${diffX}px) rotate(${rotation}deg)`;
-                    const opacity = Math.min(Math.abs(diffX) / 100, 1);
-                    if (diffX > 0) {
-                        this.approveOpacity = opacity; this.denyOpacity = 0;
-                    } else {
-                        this.denyOpacity = opacity; this.approveOpacity = 0;
-                    }
-                },
-                endDrag() {
-                    if (!this.isDragging) return;
-                    this.isDragging = false;
-                    const diffX = this.currentX - this.startX;
-                    if (Math.abs(diffX) > 100) {
-                        if (diffX > 0) this.approveMatch();
-                        else this.denyMatch();
-                    }
-                    this.dragTransform = ''; this.approveOpacity = 0; this.denyOpacity = 0;
-                    this.startX = 0; this.currentX = 0;
-                    const card = document.querySelector('.match-card.dragging');
-                    if (card) card.classList.remove('dragging');
                 }
             }
         }).mount('#adminApp');

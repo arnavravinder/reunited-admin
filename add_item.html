@@ -11,7 +11,9 @@
     <link rel="stylesheet" href="shared.css">
     <style>
         .form-container { background-color: var(--light-bg); padding: 30px; border-radius: 10px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .form-group { margin-bottom: 20px; }
+        .form-group.full-width { grid-column: 1 / -1; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
         .form-group input, .form-group select, .form-group textarea {
             width: 100%; padding: 12px; border-radius: 5px; border: 1px solid var(--dark-bg);
@@ -28,7 +30,7 @@
         .btn:hover { background-color: var(--accent-color-dark); }
         .btn:disabled { background-color: var(--text-secondary); cursor: not-allowed; }
         .message {
-            margin-top: 20px; padding: 15px; border-radius: 5px; text-align: center;
+            margin-top: 20px; padding: 15px; border-radius: 5px; text-align: center; font-weight: 500;
         }
         .success-message {
             background-color: rgba(40, 167, 69, 0.2);
@@ -67,6 +69,9 @@
             background: none; border: none; cursor: pointer;
         }
 
+        @media (max-width: 768px) {
+            .form-grid { grid-template-columns: 1fr; }
+        }
         @media (max-width: 480px) {
             .upload-options { flex-direction: column; }
         }
@@ -92,42 +97,52 @@
             <h1>Add a New Found Item</h1>
             <div class="form-container">
                 <form @submit.prevent="submitItem">
-                    <div class="form-group">
-                        <label for="name">Item Name</label>
-                        <input type="text" id="name" v-model="newItem.name" required placeholder="e.g., Black Nike Hoodie">
-                    </div>
-                    <div class="form-group">
-                        <label for="category">Category</label>
-                        <select id="category" v-model="newItem.category" required>
-                            <option disabled value="">Select a category</option>
-                            <option>Apparel</option>
-                            <option>Electronics</option>
-                            <option>Uniform</option>
-                            <option>Water Bottle</option>
-                            <option>Sports Equipment</option>
-                            <option>Accessories</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="location">Location Found</label>
-                        <input type="text" id="location" v-model="newItem.location" required placeholder="e.g., Main Building, 2nd Floor">
-                    </div>
-                    <div class="form-group">
-                        <label for="description">Description</label>
-                        <textarea id="description" v-model="newItem.description" required placeholder="Add details like color, size, brand, and any identifying marks."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Item Photo</label>
-                        <input type="file" ref="fileInput" @change="handleFileUpload" accept="image/*" style="display: none;">
-                        <div class="upload-options">
-                            <button type="button" @click="openCamera" class="btn-outline">
-                                <i class="fas fa-camera"></i> Take Photo
-                            </button>
-                            <button type="button" @click="triggerFilePicker" class="btn-outline">
-                                <i class="fas fa-folder-open"></i> Choose from Library
-                            </button>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="name">Item Name</label>
+                            <input type="text" id="name" v-model="newItem.name" required placeholder="e.g., Black Nike Hoodie">
+                        </div>
+                        <div class="form-group">
+                            <label for="location">Location Found</label>
+                            <input type="text" id="location" v-model="newItem.location" required placeholder="e.g., Main Building, 2nd Floor">
+                        </div>
+                        <div class="form-group">
+                            <label for="category">Category</label>
+                            <select id="category" v-model="newItem.category" required>
+                                <option disabled value="">Select a category</option>
+                                <option>Apparel</option>
+                                <option>Jacket</option>
+                                <option>Electronics</option>
+                                <option>Water Bottle</option>
+                                <option>Sports Equipment</option>
+                                <option>Accessories</option>
+                            </select>
+                        </div>
+                         <div class="form-group" v-if="newItem.category === 'Jacket'">
+                            <label for="size">Jacket Size</label>
+                            <select id="size" v-model="newItem.size" required>
+                                <option disabled value="">Select a size</option>
+                                <option v-for="size in jacketSizes" :key="size" :value="size">{{ size }}</option>
+                            </select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="description">Description</label>
+                            <textarea id="description" v-model="newItem.description" required placeholder="Add details like color, brand, and any identifying marks."></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Item Photo</label>
+                            <input type="file" ref="fileInput" @change="handleFileUpload" accept="image/*" style="display: none;">
+                            <div class="upload-options">
+                                <button type="button" @click="openCamera" class="btn-outline">
+                                    <i class="fas fa-camera"></i> Take Photo
+                                </button>
+                                <button type="button" @click="triggerFilePicker" class="btn-outline">
+                                    <i class="fas fa-folder-open"></i> Choose from Library
+                                </button>
+                            </div>
                         </div>
                     </div>
+
                     <div v-if="previewImage" class="image-preview">
                         <img :src="previewImage" alt="Item Preview">
                     </div>
@@ -136,7 +151,7 @@
                         {{ message }}
                     </div>
 
-                    <button type="submit" class="btn" :disabled="isSubmitting">
+                    <button type="submit" class="btn" :disabled="isSubmitting || !currentUserEmail">
                         <span v-if="isSubmitting">Submitting...</span>
                         <span v-else>Add Item to Database</span>
                     </button>
@@ -167,7 +182,7 @@
             data() {
                 return {
                     newItem: {
-                        name: '', category: '', location: '', description: '', imageFile: null
+                        name: '', category: '', location: '', description: '', imageFile: null, size: ''
                     },
                     previewImage: null,
                     isSubmitting: false,
@@ -175,8 +190,17 @@
                     isError: false,
                     imgbbApiKey: 'ea489f4e309f9b5def62fcefe9f4ffbc',
                     isCameraOpen: false,
-                    stream: null
+                    stream: null,
+                    jacketSizes: [20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52],
+                    currentUserEmail: null
                 };
+            },
+            mounted() {
+                firebase.auth().onAuthStateChanged(user => {
+                    if (user) {
+                        this.currentUserEmail = user.email;
+                    }
+                });
             },
             methods: {
                 triggerFilePicker() {
@@ -244,7 +268,12 @@
                 },
                 async submitItem() {
                     if (!this.imgbbApiKey) {
-                        this.message = 'ImgBB API Key is not configured. Please add it in the script.';
+                        this.message = 'ImgBB API Key is not configured.';
+                        this.isError = true;
+                        return;
+                    }
+                    if (!this.currentUserEmail) {
+                        this.message = 'Authentication error. Please refresh and log in again.';
                         this.isError = true;
                         return;
                     }
@@ -271,18 +300,30 @@
                             imageUrl = data.data.url;
                         }
 
+                        const newClaimCode = this.generateClaimCode();
                         const itemData = {
                             name: this.newItem.name, category: this.newItem.category, location: this.newItem.location,
                             description: this.newItem.description, image: imageUrl,
                             dateFound: firebase.firestore.FieldValue.serverTimestamp(),
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            claimed: false, claimId: null, claimCode: this.generateClaimCode(), status: 'available',
-                            searchTerms: this.generateSearchTerms(`${this.newItem.name} ${this.newItem.description} ${this.newItem.category}`)
+                            claimed: false, claimId: null, claimCode: newClaimCode, status: 'available',
+                            searchTerms: this.generateSearchTerms(`${this.newItem.name} ${this.newItem.description} ${this.newItem.category}`),
+                            auditLog: [
+                                {
+                                    action: 'Created',
+                                    user: this.currentUserEmail,
+                                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                                }
+                            ]
                         };
+
+                        if (this.newItem.category === 'Jacket' && this.newItem.size) {
+                            itemData.size = this.newItem.size;
+                        }
 
                         await db.collection('items').add(itemData);
                         
-                        this.message = `Successfully added "${this.newItem.name}" to the database!`;
+                        this.message = `Successfully added "${this.newItem.name}". Claim Code: ${newClaimCode}`;
                         this.resetForm();
                     } catch (error) {
                         console.error("Error adding item: ", error);
@@ -293,7 +334,7 @@
                     }
                 },
                 resetForm() {
-                    this.newItem = { name: '', category: '', location: '', description: '', imageFile: null };
+                    this.newItem = { name: '', category: '', location: '', description: '', imageFile: null, size: '' };
                     this.previewImage = null;
                 }
             }

@@ -64,21 +64,31 @@
     <script src="firebase-config.js"></script>
     <script src="auth.js"></script>
     <script>
-        const loginForm = document.getElementById('loginForm');
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
-        const errorMessageDiv = document.getElementById('errorMessage');
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginForm = document.getElementById('loginForm');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const errorMessageDiv = document.getElementById('errorMessage');
 
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = emailInput.value;
-            const password = passwordInput.value;
+            if (loginForm) {
+                loginForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const email = emailInput.value;
+                    const password = passwordInput.value;
+                    const loginButton = loginForm.querySelector('.btn');
 
-            firebase.auth().signInWithEmailAndPassword(email, password)
-                .catch((error) => {
-                    errorMessageDiv.textContent = error.message;
-                    errorMessageDiv.style.display = 'block';
+                    loginButton.disabled = true;
+                    loginButton.textContent = 'Logging in...';
+
+                    firebase.auth().signInWithEmailAndPassword(email, password)
+                        .catch((error) => {
+                            errorMessageDiv.textContent = error.message;
+                            errorMessageDiv.style.display = 'block';
+                            loginButton.disabled = false;
+                            loginButton.textContent = 'Login';
+                        });
                 });
+            }
         });
     </script>
 </body>
