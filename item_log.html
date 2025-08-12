@@ -211,9 +211,11 @@
                         return [];
                     }
                     return [...this.currentItemToEdit.auditLog].sort((a, b) => {
-                        const dateA = a.timestamp?.toDate() || new Date(0);
-                        const dateB = b.timestamp?.toDate() || new Date(0);
-                        return dateB - dateA;
+                        // Correctly get date objects from either Firestore Timestamps or JS Date objects
+                        const dateA = a.timestamp?.toDate ? a.timestamp.toDate() : new Date(a.timestamp);
+                        const dateB = b.timestamp?.toDate ? b.timestamp.toDate() : new Date(b.timestamp);
+                        // Sort chronologically (oldest first)
+                        return dateA - dateB;
                     });
                 }
             },
@@ -245,14 +247,22 @@
                     });
                 },
                 formatAuditTimestamp(timestamp) {
-                    if (!timestamp || !timestamp.toDate) return 'a moment ago';
-                    return timestamp.toDate().toLocaleString('en-US', {
+                    if (!timestamp) return 'Invalid Date';
+                    // Handles both Firestore Timestamp objects and JS Date objects
+                    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+                    if (isNaN(date)) {
+                        return 'Invalid Date';
+                    }
+                    return date.toLocaleString('en-IN', {
                         dateStyle: 'medium',
-                        timeStyle: 'short'
+                        timeStyle: 'short',
+                        hour12: true,
+                        timeZone: 'Asia/Kolkata'
                     });
                 },
                 openEditModal(item) {
-                    this.currentItemToEdit = JSON.parse(JSON.stringify(item));
+                    // Use a shallow copy instead of JSON.stringify to preserve object types like Firestore Timestamps
+                    this.currentItemToEdit = { ...item };
                     if (this.currentItemToEdit.image) {
                         this.isModalImageLoading = true;
                     }
@@ -278,7 +288,7 @@
                         const logEntry = {
                             action: 'Edited',
                             user: this.currentUserEmail,
-                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                            timestamp: new Date() // Use a client-side timestamp
                         };
 
                         await db.collection('items').doc(id).update({

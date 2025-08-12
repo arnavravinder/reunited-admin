@@ -49,6 +49,30 @@
         }
         .btn-outline:hover { background-color: var(--accent-color); color: white; }
         
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.7); display: flex;
+            justify-content: center; align-items: center; z-index: 2000;
+        }
+        .success-modal-content {
+            background-color: var(--light-bg); padding: 30px; border-radius: 10px;
+            max-width: 400px; width: 90%; text-align: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+        .success-modal-content h3 { color: var(--success); }
+        .claim-code-display {
+            font-size: 1.5rem; font-weight: bold; padding: 10px 20px;
+            background-color: var(--dark-bg); border-radius: 5px;
+            margin: 20px 0;
+        }
+        .modal-btn-close {
+            background-color: var(--accent-color); color: white; border: none;
+            padding: 10px 20px; border-radius: 5px; cursor: pointer;
+            margin-top: 20px;
+        }
+
+        /* Camera modal styles (already existing) */
         .camera-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: #000; z-index: 2000; display: flex;
@@ -147,7 +171,7 @@
                         <img :src="previewImage" alt="Item Preview">
                     </div>
                     
-                    <div v-if="message" class="message" :class="isError ? 'error-message' : 'success-message'">
+                    <div v-if="message && isError" class="message error-message">
                         {{ message }}
                     </div>
 
@@ -158,6 +182,18 @@
                 </form>
             </div>
 
+            <!-- Success Modal -->
+            <div v-if="isSuccessModalVisible" class="modal-overlay">
+                <div class="success-modal-content">
+                    <h3>Successfully Added Item!</h3>
+                    <p>{{ successMessage }}</p>
+                    <p>Claim Code:</p>
+                    <div class="claim-code-display">{{ successClaimCode }}</div>
+                    <button class="modal-btn-close" @click="closeSuccessModal">Close</button>
+                </div>
+            </div>
+
+            <!-- Camera Modal -->
             <div v-if="isCameraOpen" class="camera-modal">
                 <video ref="videoPlayer" autoplay playsinline></video>
                 <canvas ref="canvas" style="display: none;"></canvas>
@@ -192,7 +228,10 @@
                     isCameraOpen: false,
                     stream: null,
                     jacketSizes: [20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52],
-                    currentUserEmail: null
+                    currentUserEmail: null,
+                    isSuccessModalVisible: false,
+                    successMessage: '',
+                    successClaimCode: null
                 };
             },
             mounted() {
@@ -301,6 +340,13 @@
                         }
 
                         const newClaimCode = this.generateClaimCode();
+                        
+                        const logEntry = {
+                            action: 'Created',
+                            user: this.currentUserEmail,
+                            timestamp: new Date() 
+                        };
+
                         const itemData = {
                             name: this.newItem.name, category: this.newItem.category, location: this.newItem.location,
                             description: this.newItem.description, image: imageUrl,
@@ -308,23 +354,20 @@
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                             claimed: false, claimId: null, claimCode: newClaimCode, status: 'available',
                             searchTerms: this.generateSearchTerms(`${this.newItem.name} ${this.newItem.description} ${this.newItem.category}`),
-                            auditLog: [
-                                {
-                                    action: 'Created',
-                                    user: this.currentUserEmail,
-                                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                                }
-                            ]
+                            auditLog: [logEntry]
                         };
 
                         if (this.newItem.category === 'Jacket' && this.newItem.size) {
                             itemData.size = this.newItem.size;
                         }
-
+                        
                         await db.collection('items').add(itemData);
                         
-                        this.message = `Successfully added "${this.newItem.name}". Claim Code: ${newClaimCode}`;
-                        this.resetForm();
+                        // Set success data and show modal
+                        this.successMessage = `Successfully added "${this.newItem.name}" to the database!`;
+                        this.successClaimCode = newClaimCode;
+                        this.isSuccessModalVisible = true;
+                        
                     } catch (error) {
                         console.error("Error adding item: ", error);
                         this.message = `Failed to add item. ${error.message}`;
@@ -336,6 +379,14 @@
                 resetForm() {
                     this.newItem = { name: '', category: '', location: '', description: '', imageFile: null, size: '' };
                     this.previewImage = null;
+                    this.isError = false;
+                    this.message = '';
+                },
+                closeSuccessModal() {
+                    this.isSuccessModalVisible = false;
+                    this.resetForm();
+                    this.successMessage = '';
+                    this.successClaimCode = null;
                 }
             }
         }).mount('#addItemApp');
