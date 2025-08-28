@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin: Bulk Keyword Updater - Reunited</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="shared.css">
+    <style>
+        .tool-container { background-color: var(--light-bg); padding: 30px; border-radius: 10px; max-width: 900px; margin: 20px auto; }
+        .page-description { color: var(--text-secondary); margin-bottom: 30px; max-width: 800px; }
+        
+        .start-panel { text-align: center; padding: 40px; }
+        .btn-start { padding: 15px 30px; font-size: 1.2rem; font-weight: 600; cursor: pointer; border-radius: 8px; border: none; background-color: var(--accent-color); color: white; }
+
+        .processing-state { text-align: center; padding: 40px; }
+        .processing-state p { font-size: 1.2rem; color: var(--text-secondary); margin-top: 20px; }
+
+        .comparison-grid { display: grid; grid-template-columns: 1fr; gap: 20px; margin-top: 20px; }
+        .data-column { background-color: var(--dark-bg); padding: 20px; border-radius: 8px; }
+        .data-column h3 { margin-top: 0; border-bottom: 1px solid var(--light-bg); padding-bottom: 10px; margin-bottom: 15px; }
+        .item-context p { margin: 5px 0; color: var(--text-secondary); }
+        .item-context strong { color: var(--text-color); }
+        .keyword-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .keyword-pill { background-color: var(--light-bg); color: var(--text-color); padding: 5px 12px; border-radius: 15px; font-size: 0.9rem; }
+        
+        .actions { margin-top: 30px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-action { padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; font-weight: 600; }
+        .btn-approve { background-color: var(--success); color: white; }
+        .btn-skip { background-color: var(--warning); color: #212529; }
+        .progress-text { font-style: italic; color: var(--text-secondary); }
+    </style>
+</head>
+<body>
+    <div id="keywordUpdaterApp">
+        <header>
+            <a href="index.html" class="logo">Reunited Admin</a>
+            <nav class="nav-menu" id="nav-menu">
+                <a href="index.html">Dashboard</a>
+                <a href="add_item.html">Add Item</a>
+                <a href="item_log.html">Item Log</a>
+                <a href="daily_report.html">Daily Report</a>
+                <a href="bulk_processor.html">AI Processor</a>
+                <a href="item_editor.html">Item Editor</a>
+                <a href="keyword_updater.html" class="active">Keyword Updater</a>
+                <a href="#" id="logout-link">Logout</a>
+            </nav>
+            <div class="hamburger" id="hamburger-menu">
+                <i class="fas fa-bars"></i>
+            </div>
+        </header>
+
+        <main class="container">
+            <h1><i class="fas fa-key"></i> Bulk Keyword Updater</h1>
+            
+            <div v-if="isLoading" class="loading-spinner"><div class="spinner"></div></div>
+
+            <div v-else class="tool-container">
+                <!-- View 1: Start Button -->
+                <div v-if="viewState === 'start'" class="start-panel">
+                    <p class="page-description">This tool will fetch all items and use AI to generate new, optimized search keywords based on their name and description. The AI is strictly instructed not to invent any terms.</p>
+                    <button class="btn-start" @click="startBulkUpdate">Start Keyword Update for All Items</button>
+                </div>
+
+                <!-- View 2: Generating Suggestions -->
+                <div v-if="viewState === 'generating'" class="processing-state">
+                    <div class="spinner"></div>
+                    <p>Generating keywords for all items... <br> ({{ generationProgress.count }} / {{ generationProgress.total }})</p>
+                </div>
+
+                <!-- View 3: Review & Approval Queue -->
+                <div v-if="viewState === 'review'">
+                    <div v-if="allProcessed" class="processing-state">
+                         <i class="fas fa-check-circle" style="font-size: 3rem; color: var(--success);"></i>
+                        <p>All items have been processed!</p>
+                        <button class="btn-action btn-approve" @click="resetView">Start Over</button>
+                    </div>
+
+                    <div v-else-if="currentItem">
+                        <div class="item-context">
+                            <p><strong>Item Name:</strong> {{ currentItem.original.name }}</p>
+                            <p><strong>Description:</strong> {{ currentItem.original.description }}</p>
+                        </div>
+                        <div class="comparison-grid">
+                            <div class="data-column">
+                                <h3>Original Keywords</h3>
+                                <div class="keyword-container">
+                                    <span v-for="keyword in currentItem.original.searchTerms" class="keyword-pill">{{ keyword }}</span>
+                                </div>
+                            </div>
+                            <div class="data-column">
+                                <h3>AI Suggested Keywords</h3>
+                                <div class="keyword-container">
+                                    <span v-for="keyword in currentItem.suggestion.keywords" class="keyword-pill">{{ keyword }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="actions">
+                            <button @click="skipItem" class="btn-action btn-skip">Skip</button>
+                            <p class="progress-text">Reviewing {{ currentIndex + 1 }} of {{ processedItems.length }}</p>
+                            <button @click="approveChanges" class="btn-action btn-approve">Approve & Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
+    <script>
+        const db = firebase.firestore();
+
+        const app = Vue.createApp({
+            data() {
+                return {
+                    isLoading: false,
+                    isGenerating: false,
+                    viewState: 'start', // start, generating, review
+                    processedItems: [],
+                    currentIndex: 0,
+                    generationProgress: { count: 0, total: 0 },
+                    currentUserEmail: 'Keyword Updater Tool'
+                };
+            },
+            computed: {
+                currentItem() {
+                    return this.processedItems[this.currentIndex] || null;
+                },
+                allProcessed() {
+                    return this.viewState === 'review' && this.processedItems.length > 0 && this.currentIndex >= this.processedItems.length;
+                }
+            },
+            mounted() {
+                firebase.auth().onAuthStateChanged(user => {
+                    if (user) {
+                        this.currentUserEmail = user.email;
+                    }
+                });
+            },
+            methods: {
+                resetView() {
+                    this.viewState = 'start';
+                    this.processedItems = [];
+                    this.currentIndex = 0;
+                    this.generationProgress = { count: 0, total: 0 };
+                },
+                async startBulkUpdate() {
+                    this.viewState = 'generating';
+                    const allItems = await this.fetchItems();
+
+                    if (allItems.length === 0) {
+                        alert(`No items found in the database.`);
+                        this.resetView();
+                        return;
+                    }
+                    
+                    this.generationProgress.total = allItems.length;
+                    const suggestionPromises = allItems.map(item => this.getAISuggestion(item));
+                    const results = await Promise.allSettled(suggestionPromises);
+
+                    this.processedItems = results.map((result, index) => {
+                        if (result.status === 'fulfilled') {
+                            return { original: allItems[index], suggestion: result.value };
+                        }
+                        return { original: allItems[index], suggestion: { keywords: allItems[index].searchTerms || [] } }; // On failure, keep old keywords
+                    });
+                    
+                    this.viewState = 'review';
+                },
+                async fetchItems() {
+                    this.isLoading = true;
+                    try {
+                        const snapshot = await db.collection('items').get();
+                        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    } catch (error) {
+                        console.error("Error fetching items:", error);
+                        alert("Failed to load items.");
+                        return [];
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+                async getAISuggestion(item) {
+                    const prompt = `Your sole purpose is to extract relevant search keywords from the provided item name and description.
+CRITICAL RULE: You MUST NOT invent, infer, or add any word that is not present in the source text. Your output must be a direct subset of the words provided.
+Process:
+1. Analyze the 'name' and 'description'.
+2. Identify all significant nouns, adjectives, colors, brands, and numbers.
+3. Convert all keywords to lowercase.
+4. Remove duplicates.
+5. Exclude common stop words (e.g., 'a', 'the', 'is', 'in', 'of', 'with', 'on').
+
+Current Data:
+- name: "${item.name}"
+- description: "${item.description}"
+
+Required output is a single JSON object with a single key 'keywords', which contains an array of strings.`;
+                    
+                    const response = await fetch("https://ai.hackclub.com/chat/completions", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            model: "qwen/qwen3-32b",
+                            response_format: { type: "json_object" },
+                            messages: [
+                                { role: 'system', content: "You are a data processing engine. Extract keywords from the provided text according to strict rules. Do not add external information. Your output must be only a JSON object: {\"keywords\": [\"word1\", \"word2\", ...]}." },
+                                { role: 'user', content: prompt }
+                            ]
+                        })
+                    });
+                    
+                    this.generationProgress.count++;
+                    if (!response.ok) throw new Error(`API request failed`);
+                    
+                    const data = await response.json();
+                    const content = data.choices[0]?.message?.content;
+                    const parsedJson = JSON.parse(content.match(/\{[\s\S]*\}/)[0]);
+
+                    if (parsedJson && Array.isArray(parsedJson.keywords)) {
+                        return parsedJson;
+                    } else {
+                        throw new Error("AI did not return a valid keywords array.");
+                    }
+                },
+                async approveChanges() {
+                    if (!this.currentItem) return;
+                    const { original, suggestion } = this.currentItem;
+                    try {
+                        const logEntry = {
+                            action: 'Keywords updated by AI Tool',
+                            user: this.currentUserEmail,
+                            timestamp: new Date()
+                        };
+                        await db.collection('items').doc(original.id).update({
+                            searchTerms: suggestion.keywords,
+                            auditLog: firebase.firestore.FieldValue.arrayUnion(logEntry)
+                        });
+                    } catch (error) {
+                        console.error("Error approving changes:", error);
+                        alert(`Failed to update keywords for item: ${original.name}`);
+                    } finally {
+                        this.currentIndex++;
+                    }
+                },
+                skipItem() {
+                    this.currentIndex++;
+                }
+            }
+        }).mount('#keywordUpdaterApp');
+    </script>
+</body>
+</html>

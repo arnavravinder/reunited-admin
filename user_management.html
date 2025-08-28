@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin: User Management - Reunited</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="shared.css">
+    <style>
+        .user-section { background-color: var(--light-bg); border-radius: 10px; padding: 20px; margin-bottom: 30px; }
+        .user-section h2 { border-bottom: 1px solid var(--dark-bg); padding-bottom: 15px; margin-top: 0; }
+        .search-container {
+            display: flex; gap: 15px; align-items: center; margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .search-input {
+            background-color: var(--dark-bg); border: 1px solid var(--text-secondary); color: var(--text-color);
+            border-radius: 5px; padding: 10px; min-width: 250px; flex: 1;
+        }
+        .btn-search {
+            background-color: var(--accent-color); color: white; border: none; padding: 10px 20px;
+            border-radius: 5px; cursor: pointer; font-weight: 500;
+        }
+        .btn-clear {
+            background-color: #6c757d; color: white; border: none; padding: 10px 20px;
+            border-radius: 5px; cursor: pointer; font-weight: 500;
+        }
+        .user-card {
+            background-color: var(--dark-bg); border-radius: 8px; padding: 20px; margin-bottom: 15px;
+            border: 1px solid var(--text-secondary);
+        }
+        .user-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;
+        }
+        .user-info h3 { margin: 0; color: var(--accent-color); }
+        .user-info p { margin: 5px 0; color: var(--text-secondary); }
+        .user-actions {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .btn-rename {
+            background-color: #17a2b8; color: white; border: none; padding: 6px 10px;
+            border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500;
+        }
+        .btn-rename:hover { background-color: #138496; }
+        .rename-input {
+            background-color: var(--dark-bg); border: 1px solid var(--accent-color); 
+            color: var(--text-color); border-radius: 4px; padding: 6px 8px;
+            font-size: 0.9em; min-width: 150px;
+        }
+        .btn-save-name {
+            background-color: var(--success); color: white; border: none; padding: 6px 10px;
+            border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500;
+        }
+        .btn-cancel-name {
+            background-color: #6c757d; color: white; border: none; padding: 6px 10px;
+            border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 500;
+        }
+        .claims-count {
+            background-color: var(--accent-color); color: white; padding: 5px 12px;
+            border-radius: 15px; font-weight: 500; font-size: 0.9em;
+        }
+        .claims-list { margin-top: 15px; }
+        .claim-item {
+            background-color: var(--light-bg); border-radius: 5px; padding: 10px; margin-bottom: 8px;
+            display: flex; justify-content: between; align-items: center; flex-wrap: wrap;
+        }
+        .claim-details { flex: 1; }
+        .claim-status {
+            padding: 3px 8px; border-radius: 4px; font-size: 0.8em; font-weight: 500;
+        }
+        .status-collected { background-color: #28a745; color: white; }
+        .status-pending { background-color: #ffc107; color: #212529; }
+        .status-approved { background-color: #17a2b8; color: white; }
+        .no-users { text-align: center; padding: 40px; color: var(--text-secondary); }
+    </style>
+</head>
+<body>
+    <div id="userApp">
+        <header>
+            <a href="index.html" class="logo">Reunited Admin</a>
+            <nav class="nav-menu" id="nav-menu">
+                <a href="index.html">Dashboard</a>
+                <a href="add_item.html">Add Item</a>
+                <a href="item_log.html">Item Log</a>
+                <a href="daily_report.html">Claim Report</a>
+                <a href="user_management.html" class="active">User Management</a>
+                <a href="#" id="logout-link">Logout</a>
+            </nav>
+            <div class="hamburger" id="hamburger-menu">
+                <i class="fas fa-bars"></i>
+            </div>
+        </header>
+
+        <main class="container">
+            <h1>User Management</h1>
+
+            <div v-if="isLoading" class="loading-spinner"><div class="spinner"></div></div>
+
+            <div v-else>
+                <section class="user-section">
+                    <h2>Search Users</h2>
+                    <div class="search-container">
+                        <input type="text" v-model="searchQuery" @keyup.enter="searchUsers" 
+                               class="search-input" placeholder="Search by name or email">
+                        <button @click="searchUsers" class="btn-search">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                        <button @click="clearSearch" class="btn-clear">
+                            <i class="fas fa-times"></i> Clear
+                        </button>
+                    </div>
+                </section>
+
+                <section class="user-section">
+                    <h2>Users & Claims ({{ filteredUsers.length }})</h2>
+                    <div v-if="filteredUsers.length > 0">
+                        <div v-for="user in filteredUsers" :key="user.email" class="user-card">
+                            <div class="user-header">
+                                <div class="user-info">
+                                    <h3 v-if="!user.editing">{{ user.name }}</h3>
+                                    <div v-if="user.editing" style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="text" v-model="user.newName" @keyup.enter="saveUserName(user)" 
+                                               class="rename-input" placeholder="Enter new name">
+                                    </div>
+                                    <p><i class="fas fa-envelope"></i> {{ user.email }}</p>
+                                    <p v-if="user.phone"><i class="fas fa-phone"></i> {{ user.phone }}</p>
+                                </div>
+                                <div class="user-actions">
+                                    <div class="claims-count">{{ user.claims.length }} Claims</div>
+                                    <button v-if="!user.editing" @click="startRename(user)" class="btn-rename" title="Rename User">
+                                        <i class="fas fa-edit"></i> Rename
+                                    </button>
+                                    <div v-if="user.editing" style="display: flex; gap: 5px;">
+                                        <button @click="saveUserName(user)" class="btn-save-name" title="Save Name">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button @click="cancelRename(user)" class="btn-cancel-name" title="Cancel">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div v-if="user.claims.length > 0" class="claims-list">
+                                <h4 style="margin-bottom: 10px; color: var(--text-color);">Claims History:</h4>
+                                <div v-for="claim in user.claims" :key="claim.id" class="claim-item">
+                                    <div class="claim-details">
+                                        <strong>{{ claim.itemName }}</strong><br>
+                                        <small>Claim Code: {{ claim.claimCode }}</small><br>
+                                        <small>Claimed: {{ formatDate(claim.claimDate) }}</small>
+                                    </div>
+                                    <div class="claim-status" :class="getStatusClass(claim.status)">
+                                        {{ getStatusText(claim.status) }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="no-users">
+                        <i class="fas fa-users" style="font-size: 3em; margin-bottom: 20px; opacity: 0.5;"></i>
+                        <h3>{{ searchQuery ? 'No users found' : 'Loading users...' }}</h3>
+                        <p>{{ searchQuery ? 'Try a different search term' : 'Please wait while we load user data' }}</p>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
+    <script>
+        const db = firebase.firestore();
+
+        const app = Vue.createApp({
+            data() {
+                return {
+                    isLoading: true,
+                    searchQuery: '',
+                    allUsers: [],
+                    filteredUsers: []
+                };
+            },
+            mounted() {
+                this.loadUsers();
+            },
+            methods: {
+                async loadUsers() {
+                    this.isLoading = true;
+                    try {
+                        // Get all claims
+                        const claimsSnap = await db.collection('claims').orderBy('claimDate', 'desc').get();
+                        
+                        // Get all items
+                        const itemsSnap = await db.collection('items').get();
+                        const itemsMap = new Map(itemsSnap.docs.map(doc => [doc.id, doc.data()]));
+                        
+                        // Group claims by user
+                        const usersMap = new Map();
+                        
+                        claimsSnap.forEach(doc => {
+                            const claim = { id: doc.id, ...doc.data() };
+                            const item = itemsMap.get(claim.itemId);
+                            
+                            if (!usersMap.has(claim.userEmail)) {
+                                usersMap.set(claim.userEmail, {
+                                    name: claim.userName,
+                                    email: claim.userEmail,
+                                    phone: claim.userPhone || null,
+                                    claims: []
+                                });
+                            }
+                            
+                            const user = usersMap.get(claim.userEmail);
+                            user.claims.push({
+                                id: claim.id,
+                                itemName: item ? item.name : 'Unknown Item',
+                                claimCode: claim.claimCode,
+                                claimDate: claim.claimDate,
+                                status: item ? item.status : 'unknown'
+                            });
+                            
+                            // Add editing state properties
+                            user.editing = false;
+                            user.newName = user.name;
+                        });
+                        
+                        this.allUsers = Array.from(usersMap.values());
+                        this.filteredUsers = [...this.allUsers];
+                        
+                    } catch (error) {
+                        console.error("Error loading users:", error);
+                        alert("Failed to load users. Please refresh the page.");
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+                searchUsers() {
+                    if (!this.searchQuery.trim()) {
+                        this.filteredUsers = [...this.allUsers];
+                        return;
+                    }
+                    
+                    const query = this.searchQuery.toLowerCase();
+                    this.filteredUsers = this.allUsers.filter(user => 
+                        user.name.toLowerCase().includes(query) || 
+                        user.email.toLowerCase().includes(query)
+                    );
+                },
+                clearSearch() {
+                    this.searchQuery = '';
+                    this.filteredUsers = [...this.allUsers];
+                },
+                formatDate(timestamp) {
+                    if (!timestamp || !timestamp.toDate) return 'N/A';
+                    return timestamp.toDate().toLocaleDateString('en-US', { 
+                        year: 'numeric', month: 'short', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    });
+                },
+                getStatusText(status) {
+                    switch(status) {
+                        case 'collected': return 'Collected';
+                        case 'found': return 'Pending Pickup';
+                        case 'approved': return 'Approved';
+                        default: return 'Unknown';
+                    }
+                },
+                getStatusClass(status) {
+                    switch(status) {
+                        case 'collected': return 'status-collected';
+                        case 'found': return 'status-pending';
+                        case 'approved': return 'status-approved';
+                        default: return 'status-pending';
+                    }
+                },
+                startRename(user) {
+                    user.editing = true;
+                    user.newName = user.name;
+                    // Focus the input after Vue updates the DOM
+                    this.$nextTick(() => {
+                        const input = document.querySelector('.rename-input');
+                        if (input) input.focus();
+                    });
+                },
+                cancelRename(user) {
+                    user.editing = false;
+                    user.newName = user.name;
+                },
+                async saveUserName(user) {
+                    if (!user.newName || user.newName.trim() === '') {
+                        alert('Please enter a valid name');
+                        return;
+                    }
+                    
+                    const newName = user.newName.trim();
+                    if (newName === user.name) {
+                        user.editing = false;
+                        return;
+                    }
+                    
+                    try {
+                        // Update all claims for this user
+                        const batch = db.batch();
+                        user.claims.forEach(claim => {
+                            const claimRef = db.collection('claims').doc(claim.id);
+                            batch.update(claimRef, { userName: newName });
+                        });
+                        
+                        await batch.commit();
+                        
+                        // Update local data
+                        user.name = newName;
+                        user.editing = false;
+                        
+                        alert(`User renamed to "${newName}" successfully!`);
+                        
+                    } catch (error) {
+                        console.error("Error updating user name:", error);
+                        alert("Failed to update user name. Please try again.");
+                    }
+                }
+            }
+        }).mount('#userApp');
+    </script>
+</body>
+</html>
