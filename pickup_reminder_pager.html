@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pickup Reminder Pager - Reunited Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="shared.css">
+    <style>
+        .pager-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .control-panel {
+            background: var(--light-bg);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid var(--dark-bg);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--dark-bg);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--accent-color);
+            display: block;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #e0a030;
+        }
+
+        .btn-secondary {
+            background: var(--dark-bg);
+            color: var(--text-color);
+            border: 1px solid var(--accent-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .preview-section {
+            background: var(--light-bg);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid var(--dark-bg);
+        }
+
+        .email-preview {
+            background: white;
+            color: #333;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+
+        .email-header {
+            background-color: #ffb347;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+            margin-bottom: 20px;
+        }
+
+        .recipients-section {
+            background: var(--light-bg);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid var(--dark-bg);
+        }
+
+        .recipients-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .recipients-table th,
+        .recipients-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--dark-bg);
+        }
+
+        .recipients-table th {
+            background: var(--dark-bg);
+            font-weight: 500;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-sent {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .log-section {
+            background: var(--light-bg);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid var(--dark-bg);
+        }
+
+        .log-entry {
+            padding: 10px;
+            margin: 5px 0;
+            background: var(--dark-bg);
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        .log-timestamp {
+            color: var(--text-secondary);
+        }
+
+        .log-info {
+            color: var(--accent-color);
+        }
+
+        .log-success {
+            color: var(--success);
+        }
+
+        .log-error {
+            color: var(--danger);
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-input {
+            padding: 8px 12px;
+            border: 1px solid var(--dark-bg);
+            border-radius: 5px;
+            background: var(--dark-bg);
+            color: var(--text-color);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            background: var(--light-bg);
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 300px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: var(--dark-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-color);
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="pagerApp">
+        <header>
+            <a href="index.html" class="logo">Reunited Admin</a>
+            <nav class="nav-menu" id="nav-menu">
+                <a href="index.html">Dashboard</a>
+                <a href="add_item.html">Add Item</a>
+                <a href="item_log.html">Item Log</a>
+                <a href="daily_report.html">Claim Report</a>
+                <a href="user_management.html">User Management</a>
+                <a href="lost_items.html">Lost Items</a>
+                <a href="management.html">Management</a>
+                <a href="pickup_reminder_pager.html" class="active">Pickup Reminder</a>
+                <a href="#" id="logout-link">Logout</a>
+            </nav>
+            <div class="hamburger" id="hamburger-menu">
+                <i class="fas fa-bars"></i>
+            </div>
+        </header>
+
+        <main class="pager-container">
+            <h1><i class="fas fa-envelope"></i> Pickup Reminder Pager</h1>
+            <p style="color: var(--text-secondary); margin-bottom: 30px;">
+                Send pickup reminder emails to users with pending claims. Uses AI Hackclub for intelligent email management.
+            </p>
+
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <h2><i class="fas fa-dashboard"></i> Control Panel</h2>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-number">{{ pendingClaims.length }}</span>
+                        <span class="stat-label">Pending Claims</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number">{{ eligibleForReminder.length }}</span>
+                        <span class="stat-label">Eligible for Reminder</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number">{{ sentCount }}</span>
+                        <span class="stat-label">Emails Sent</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number">{{ errorCount }}</span>
+                        <span class="stat-label">Send Errors</span>
+                    </div>
+                </div>
+
+                <div class="filter-controls">
+                    <select v-model="selectedCategory" class="filter-input">
+                        <option value="">All Categories</option>
+                        <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
+                    </select>
+                    <input type="number" v-model="daysThreshold" class="filter-input" placeholder="Days since claim" min="1" max="30">
+                    <input type="text" v-model="adminEmail" class="filter-input" placeholder="Your email for approval" style="min-width: 250px;">
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-secondary" @click="refreshData" :disabled="isLoading">
+                        <i class="fas fa-refresh"></i>
+                        Refresh Data
+                    </button>
+                    <button class="btn btn-secondary" @click="testApiConnection" :disabled="isLoading">
+                        <i class="fas fa-plug"></i>
+                        Test API Connection
+                    </button>
+                    <button class="btn btn-primary" @click="sendTestEmail" :disabled="isLoading || !adminEmail">
+                        <i class="fas fa-test-tube"></i>
+                        Send Test to Admin
+                    </button>
+                    <button class="btn btn-primary" @click="sendBulkReminders" :disabled="isLoading || eligibleForReminder.length === 0 || !adminEmail">
+                        <i class="fas fa-paper-plane"></i>
+                        Send All Reminders ({{ eligibleForReminder.length }})
+                    </button>
+                </div>
+            </div>
+
+            <!-- Email Preview -->
+            <div class="preview-section">
+                <h2><i class="fas fa-eye"></i> Email Preview</h2>
+                <div class="email-preview">
+                    <div class="email-header">
+                        <h2>Pickup Reminder</h2>
+                    </div>
+                    <p>Hi [User Name],</p>
+                    <p>We noticed you haven't picked up your item <strong>[Item Name]</strong> yet. This is a reminder that if you don't pick up the item in the next seven (7) days, it will move back to claimable items.</p>
+                    <p>If you have any concerns, please reply to this email.</p>
+                    <p>Thank you,<br>Reunited Lost & Found Team</p>
+                </div>
+            </div>
+
+            <!-- Recipients -->
+            <div class="recipients-section">
+                <h2><i class="fas fa-users"></i> Recipients ({{ eligibleForReminder.length }})</h2>
+                <table class="recipients-table" v-if="eligibleForReminder.length > 0">
+                    <thead>
+                        <tr>
+                            <th>User Name</th>
+                            <th>Email</th>
+                            <th>Item Name</th>
+                            <th>Category</th>
+                            <th>Days Since Claim</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="claim in eligibleForReminder" :key="claim.id">
+                            <td>{{ claim.userName || 'Unknown' }}</td>
+                            <td>{{ claim.email }}</td>
+                            <td>{{ claim.itemName }}</td>
+                            <td>{{ claim.category }}</td>
+                            <td>{{ getDaysSinceClaim(claim.claimDate) }}</td>
+                            <td>
+                                <span class="status-badge" :class="'status-' + (emailStatus[claim.id] || 'pending')">
+                                    {{ (emailStatus[claim.id] || 'pending').toUpperCase() }}
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div v-else style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
+                    <p>No eligible recipients found. Adjust your filters or check back later.</p>
+                </div>
+            </div>
+
+            <!-- Activity Log -->
+            <div class="log-section">
+                <h2><i class="fas fa-history"></i> Activity Log</h2>
+                <div v-if="activityLog.length === 0" style="text-align: center; padding: 20px; color: var(--text-secondary);">
+                    No activity yet. Start sending emails to see logs here.
+                </div>
+                <div v-for="entry in activityLog" :key="entry.id" class="log-entry">
+                    <span class="log-timestamp">[{{ formatTimestamp(entry.timestamp) }}]</span>
+                    <span :class="'log-' + entry.type">{{ entry.message }}</span>
+                </div>
+            </div>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div v-if="isLoading" class="loading-overlay">
+            <div class="loading-content">
+                <h3>{{ loadingMessage }}</h3>
+                <div class="progress-bar">
+                    <div class="progress-fill" :style="{ width: progress + '%' }"></div>
+                </div>
+                <p>{{ progress }}% Complete</p>
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
+    <script>
+        const db = firebase.firestore();
+
+        const app = Vue.createApp({
+            data() {
+                return {
+                    isLoading: false,
+                    loadingMessage: '',
+                    progress: 0,
+                    pendingClaims: [],
+                    selectedCategory: '',
+                    daysThreshold: 3,
+                    adminEmail: '',
+                    categories: ['Apparel', 'Jacket', 'Electronics', 'Water Bottle', 'Sports Equipment', 'Accessories'],
+                    emailStatus: {},
+                    sentCount: 0,
+                    errorCount: 0,
+                    activityLog: []
+                };
+            },
+            computed: {
+                eligibleForReminder() {
+                    return this.pendingClaims.filter(claim => {
+                        const daysSince = this.getDaysSinceClaim(claim.claimDate);
+                        const categoryMatch = !this.selectedCategory || claim.category === this.selectedCategory;
+                        const daysMatch = daysSince >= this.daysThreshold;
+                        return categoryMatch && daysMatch;
+                    });
+                }
+            },
+            mounted() {
+                firebase.auth().onAuthStateChanged(user => {
+                    if (user) {
+                        this.adminEmail = user.email;
+                    }
+                });
+                this.refreshData();
+            },
+            methods: {
+                async refreshData() {
+                    this.isLoading = true;
+                    this.loadingMessage = 'Loading pending claims...';
+                    this.progress = 0;
+
+                    try {
+                        this.progress = 20;
+                        await new Promise(resolve => setTimeout(resolve, 200));
+
+                        // Fetch approved claims
+                        this.loadingMessage = 'Fetching approved claims...';
+                        let claimsSnapshot;
+                        try {
+                            // Try with orderBy first
+                            claimsSnapshot = await db.collection('claims')
+                                .where('status', '==', 'approved')
+                                .orderBy('claimDate', 'desc')
+                                .get();
+                        } catch (indexError) {
+                            // Fallback without orderBy if index doesn't exist
+                            this.addLogEntry('info', 'Using fallback query without orderBy (index may be missing)');
+                            claimsSnapshot = await db.collection('claims')
+                                .where('status', '==', 'approved')
+                                .get();
+                        }
+
+                        this.progress = 50;
+                        await new Promise(resolve => setTimeout(resolve, 200));
+
+                        // Fetch claimed items
+                        this.loadingMessage = 'Fetching claimed items...';
+                        const itemsSnapshot = await db.collection('items')
+                            .where('claimed', '==', true)
+                            .get();
+
+                        this.progress = 70;
+                        await new Promise(resolve => setTimeout(resolve, 200));
+
+                        // Create items map for quick lookup
+                        const itemsMap = new Map(
+                            itemsSnapshot.docs.map(doc => [doc.id, { id: doc.id, ...doc.data() }])
+                        );
+
+                        this.loadingMessage = 'Processing pending claims...';
+                        this.progress = 90;
+
+                        // Combine claims with item data and filter for pending pickup
+                        const allClaims = [];
+                        claimsSnapshot.forEach(claimDoc => {
+                            const claim = claimDoc.data();
+                            const item = itemsMap.get(claim.itemId);
+
+                            if (item) {
+                                allClaims.push({
+                                    id: claimDoc.id,
+                                    email: claim.userEmail || claim.email,
+                                    userName: claim.userName,
+                                    itemName: item.name || 'Unknown Item',
+                                    category: item.category || 'Unknown',
+                                    claimDate: claim.claimDate,
+                                    itemId: claim.itemId,
+                                    status: item.status || 'pending'
+                                });
+                            }
+                        });
+
+                        // Filter for items that haven't been collected yet
+                        this.pendingClaims = allClaims.filter(claim =>
+                            claim.status !== 'collected' && claim.status !== 'picked_up'
+                        );
+
+                        this.progress = 100;
+                        this.addLogEntry('info', `Loaded ${this.pendingClaims.length} pending claims out of ${allClaims.length} total claims`);
+
+                        // Debug logging
+                        console.log('Claims snapshot size:', claimsSnapshot.size);
+                        console.log('Items snapshot size:', itemsSnapshot.size);
+                        console.log('All claims:', allClaims);
+                        console.log('Pending claims:', this.pendingClaims);
+
+                        if (claimsSnapshot.size === 0) {
+                            this.addLogEntry('info', 'No approved claims found in database');
+                        } else if (itemsSnapshot.size === 0) {
+                            this.addLogEntry('info', 'No claimed items found in database');
+                        } else if (this.pendingClaims.length === 0) {
+                            this.addLogEntry('info', 'No pending claims found. All claimed items may have been picked up.');
+                        }
+                    } catch (error) {
+                        console.error('Error loading data:', error);
+                        this.addLogEntry('error', `Error loading data: ${error.message}`);
+
+                        // More detailed error logging
+                        if (error.code === 'failed-precondition') {
+                            this.addLogEntry('error', 'Database index may be missing. Check Firebase console.');
+                        }
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                async testApiConnection() {
+                    this.isLoading = true;
+                    this.loadingMessage = 'Testing API connection...';
+                    this.progress = 50;
+
+                    try {
+                        const response = await fetch('https://api.reunited.co.in/api/send-pickup-reminder', {
+                            method: 'OPTIONS',
+                            mode: 'cors'
+                        });
+
+                        this.progress = 100;
+
+                        if (response.ok) {
+                            this.addLogEntry('success', 'API connection test successful');
+                            alert('✅ API connection successful! You can send emails.');
+                            return true;
+                        } else {
+                            this.addLogEntry('error', `API connection failed: HTTP ${response.status}`);
+                            alert(`❌ API connection failed: HTTP ${response.status}`);
+                            return false;
+                        }
+                    } catch (error) {
+                        console.error('API connection test failed:', error);
+                        this.addLogEntry('error', `API connection failed: ${error.message}`);
+
+                        if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+                            alert('❌ CORS Error: The API server may not allow requests from this domain. Try opening the pager from the production domain.');
+                        } else {
+                            alert(`❌ API connection failed: ${error.message}`);
+                        }
+                        return false;
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                async sendTestEmail() {
+                    if (!this.adminEmail) {
+                        alert('Please enter your email address first');
+                        return;
+                    }
+
+                    // Test API connection first
+                    this.isLoading = true;
+                    this.loadingMessage = 'Testing API connection...';
+                    this.progress = 20;
+
+                    const apiAvailable = await this.testApiConnection();
+                    if (!apiAvailable) {
+                        this.isLoading = false;
+                        this.addLogEntry('error', 'API endpoint not accessible. Check CORS or network issues.');
+                        alert('Cannot connect to API endpoint. This might be a CORS issue or the API might be down.');
+                        return;
+                    }
+
+                    this.loadingMessage = 'Sending test email...';
+                    this.progress = 50;
+
+                    try {
+                        const testData = {
+                            email: this.adminEmail,
+                            userName: 'Admin Test',
+                            itemName: 'Test Item for Preview'
+                        };
+
+                        const response = await fetch('https://api.reunited.co.in/api/send-pickup-reminder', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify(testData),
+                            mode: 'cors',
+                            credentials: 'omit'
+                        });
+
+                        this.progress = 100;
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            this.addLogEntry('success', `Test email sent to ${this.adminEmail} (ID: ${result.messageId || 'N/A'})`);
+                            alert('Test email sent successfully! Check your inbox.');
+                        } else {
+                            const errorText = await response.text();
+                            throw new Error(`HTTP ${response.status}: ${errorText}`);
+                        }
+                    } catch (error) {
+                        console.error('Error sending test email:', error);
+                        this.addLogEntry('error', `Failed to send test email: ${error.message}`);
+
+                        if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+                            alert('CORS Error: The API server may not allow requests from this domain. Try opening the pager from the production domain or contact the API administrator.');
+                        } else {
+                            alert(`Failed to send test email: ${error.message}`);
+                        }
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                async sendBulkReminders() {
+                    if (!confirm(`Send pickup reminders to ${this.eligibleForReminder.length} recipients?`)) {
+                        return;
+                    }
+
+                    this.isLoading = true;
+                    this.loadingMessage = 'Sending bulk reminders...';
+                    this.progress = 0;
+                    this.sentCount = 0;
+                    this.errorCount = 0;
+
+                    const total = this.eligibleForReminder.length;
+                    this.addLogEntry('info', `Starting bulk send to ${total} recipients`);
+
+                    // First, send approval email to admin
+                    try {
+                        const approvalData = {
+                            email: this.adminEmail,
+                            userName: 'Admin',
+                            itemName: `Bulk Reminder Approval - ${total} emails queued`
+                        };
+
+                        await fetch('https://api.reunited.co.in/api/send-pickup-reminder', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify(approvalData),
+                            mode: 'cors',
+                            credentials: 'omit'
+                        });
+
+                        this.addLogEntry('info', `Approval email sent to admin: ${this.adminEmail}`);
+                    } catch (error) {
+                        this.addLogEntry('error', `Failed to send approval email: ${error.message}`);
+                    }
+
+                    // Wait for admin confirmation
+                    const shouldProceed = confirm(`Approval email sent to ${this.adminEmail}. \n\nProceed with sending all ${total} reminder emails now?`);
+
+                    if (!shouldProceed) {
+                        this.isLoading = false;
+                        this.addLogEntry('info', 'Bulk send cancelled by admin');
+                        return;
+                    }
+
+                    // Send emails to all recipients
+                    for (let i = 0; i < this.eligibleForReminder.length; i++) {
+                        const claim = this.eligibleForReminder[i];
+                        this.progress = Math.round(((i + 1) / total) * 100);
+                        this.loadingMessage = `Sending to ${claim.email} (${i + 1}/${total})`;
+
+                        try {
+                            Vue.set(this.emailStatus, claim.id, 'sending');
+
+                            const emailData = {
+                                email: claim.email,
+                                userName: claim.userName,
+                                itemName: claim.itemName
+                            };
+
+                            const response = await fetch('https://api.reunited.co.in/api/send-pickup-reminder', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
+                                },
+                                body: JSON.stringify(emailData),
+                                mode: 'cors',
+                                credentials: 'omit'
+                            });
+
+                            if (response.ok) {
+                                Vue.set(this.emailStatus, claim.id, 'sent');
+                                this.sentCount++;
+                                this.addLogEntry('success', `Email sent to ${claim.email} for ${claim.itemName}`);
+                            } else {
+                                throw new Error(`HTTP ${response.status}`);
+                            }
+                        } catch (error) {
+                            Vue.set(this.emailStatus, claim.id, 'error');
+                            this.errorCount++;
+                            this.addLogEntry('error', `Failed to send to ${claim.email}: ${error.message}`);
+                        }
+
+                        // Small delay to prevent overwhelming the server
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+
+                    this.isLoading = false;
+                    this.addLogEntry('info', `Bulk send completed. Sent: ${this.sentCount}, Errors: ${this.errorCount}`);
+                    alert(`Bulk send completed!\nSent: ${this.sentCount}\nErrors: ${this.errorCount}`);
+                },
+
+                getDaysSinceClaim(claimDate) {
+                    if (!claimDate) return 0;
+                    const claimDateObj = claimDate.toDate ? claimDate.toDate() : new Date(claimDate);
+                    const now = new Date();
+                    const diffTime = Math.abs(now - claimDateObj);
+                    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                },
+
+                formatTimestamp(timestamp) {
+                    return new Date(timestamp).toLocaleString('en-IN', {
+                        dateStyle: 'short',
+                        timeStyle: 'medium',
+                        hour12: true,
+                        timeZone: 'Asia/Kolkata'
+                    });
+                },
+
+                addLogEntry(type, message) {
+                    this.activityLog.unshift({
+                        id: Date.now(),
+                        type: type,
+                        message: message,
+                        timestamp: Date.now()
+                    });
+
+                    // Keep only last 50 entries
+                    if (this.activityLog.length > 50) {
+                        this.activityLog = this.activityLog.slice(0, 50);
+                    }
+                }
+            }
+        }).mount('#pagerApp');
+    </script>
+</body>
+</html>
