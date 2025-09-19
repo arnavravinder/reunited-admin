@@ -59,19 +59,16 @@
             <div v-if="isLoading" class="loading-spinner"><div class="spinner"></div></div>
 
             <div v-else class="tool-container">
-                <!-- View 1: Start Button -->
                 <div v-if="viewState === 'start'" class="start-panel">
                     <p class="page-description">This tool will fetch all items and use AI to generate new, optimized search keywords based on their name and description. The AI is strictly instructed not to invent any terms.</p>
                     <button class="btn-start" @click="startBulkUpdate">Start Keyword Update for All Items</button>
                 </div>
 
-                <!-- View 2: Generating Suggestions -->
                 <div v-if="viewState === 'generating'" class="processing-state">
                     <div class="spinner"></div>
                     <p>Generating keywords for all items... <br> ({{ generationProgress.count }} / {{ generationProgress.total }})</p>
                 </div>
 
-                <!-- View 3: Review & Approval Queue -->
                 <div v-if="viewState === 'review'">
                     <div v-if="allProcessed" class="processing-state">
                          <i class="fas fa-check-circle" style="font-size: 3rem; color: var(--success);"></i>

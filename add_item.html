@@ -111,6 +111,8 @@
                 <a href="item_log.html">Item Log</a>
                 <a href="daily_report.html">Claim Report</a>
                 <a href="user_management.html">User Management</a>
+                <a href="lost_items.html">Lost Items</a>
+                <a href="management.html">Management</a>
                 <a href="#" id="logout-link">Logout</a>
             </nav>
             <div class="hamburger" id="hamburger-menu">
@@ -183,7 +185,6 @@
                 </form>
             </div>
 
-            <!-- Success Modal -->
             <div v-if="isSuccessModalVisible" class="modal-overlay">
                 <div class="success-modal-content">
                     <h3>Successfully Added Item!</h3>
@@ -194,7 +195,6 @@
                 </div>
             </div>
 
-            <!-- Camera Modal -->
             <div v-if="isCameraOpen" class="camera-modal">
                 <video ref="videoPlayer" autoplay playsinline></video>
                 <canvas ref="canvas" style="display: none;"></canvas>

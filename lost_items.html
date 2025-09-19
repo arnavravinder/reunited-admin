@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin: Lost Items - Reunited</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="shared.css">
+    <style>
+        .lost-section { background-color: var(--light-bg); border-radius: 10px; padding: 20px; margin-bottom: 30px; }
+        .lost-section h2 { border-bottom: 1px solid var(--dark-bg); padding-bottom: 15px; margin-top: 0; }
+        .search-filters {
+            display: flex; gap: 15px; align-items: center; margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .search-input, .filter-select {
+            background-color: var(--dark-bg); border: 1px solid var(--text-secondary); color: var(--text-color);
+            border-radius: 5px; padding: 10px; min-width: 200px;
+        }
+        .btn-search, .btn-clear {
+            background-color: var(--accent-color); color: white; border: none; padding: 10px 20px;
+            border-radius: 5px; cursor: pointer; font-weight: 500;
+        }
+        .btn-clear { background-color: #6c757d; }
+        .lost-item-card {
+            background-color: var(--dark-bg); border-radius: 8px; padding: 20px; margin-bottom: 15px;
+            border: 1px solid var(--text-secondary); position: relative;
+        }
+        .item-header {
+            display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;
+            flex-wrap: wrap; gap: 10px;
+        }
+        .item-info h3 { margin: 0; color: var(--accent-color); font-size: 1.2em; }
+        .item-info p { margin: 5px 0; color: var(--text-secondary); }
+        .item-meta {
+            display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
+        }
+        .status-badge {
+            padding: 5px 10px; border-radius: 15px; font-size: 0.8em; font-weight: 500;
+        }
+        .status-lost { background-color: #dc3545; color: white; }
+        .reported-date { font-size: 0.85em; color: var(--text-secondary); }
+        .description-section {
+            margin: 15px 0; padding: 15px; background-color: var(--light-bg); border-radius: 5px;
+        }
+        .description-section h4 { margin: 0 0 10px 0; color: var(--text-color); }
+        .reporter-info {
+            display: flex; justify-content: space-between; align-items: center; margin-top: 15px;
+            padding-top: 15px; border-top: 1px solid var(--text-secondary);
+            flex-wrap: wrap; gap: 10px;
+        }
+        .reporter-details p { margin: 2px 0; font-size: 0.9em; }
+        .contact-actions {
+            display: flex; gap: 10px;
+        }
+        .btn-email, .btn-phone {
+            background-color: var(--accent-color); color: white; border: none; padding: 8px 12px;
+            border-radius: 5px; cursor: pointer; font-size: 0.85em; text-decoration: none;
+        }
+        .btn-phone { background-color: #28a745; }
+        .btn-email:hover, .btn-phone:hover { opacity: 0.8; }
+        .stats-row {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+            flex-wrap: wrap; gap: 15px;
+        }
+        .stat-card {
+            background-color: var(--dark-bg); padding: 15px; border-radius: 8px; text-align: center;
+            border: 1px solid var(--text-secondary); flex: 1; min-width: 120px;
+        }
+        .stat-number { font-size: 2em; font-weight: 600; color: var(--accent-color); margin: 0; }
+        .stat-label { color: var(--text-secondary); margin: 5px 0 0 0; font-size: 0.9em; }
+        .no-items { text-align: center; padding: 40px; color: var(--text-secondary); }
+    </style>
+</head>
+<body>
+    <div id="lostItemsApp">
+        <header>
+            <a href="index.html" class="logo">Reunited Admin</a>
+            <nav class="nav-menu" id="nav-menu">
+                <a href="index.html">Dashboard</a>
+                <a href="add_item.html">Add Item</a>
+                <a href="item_log.html">Item Log</a>
+                <a href="daily_report.html">Claim Report</a>
+                <a href="user_management.html">User Management</a>
+                <a href="lost_items.html" class="active">Lost Items</a>
+                <a href="management.html">Management</a>
+                <a href="#" id="logout-link">Logout</a>
+            </nav>
+            <div class="hamburger" id="hamburger-menu">
+                <i class="fas fa-bars"></i>
+            </div>
+        </header>
+
+        <main class="container">
+            <h1>Lost Items Report</h1>
+
+            <div v-if="isLoading" class="loading-spinner"><div class="spinner"></div></div>
+
+            <div v-else>
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <p class="stat-number">{{ totalLostItems }}</p>
+                        <p class="stat-label">Total Lost Items</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="stat-number">{{ todaysLostItems }}</p>
+                        <p class="stat-label">Reported Today</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="stat-number">{{ thisWeekLostItems }}</p>
+                        <p class="stat-label">This Week</p>
+                    </div>
+                </div>
+
+                <section class="lost-section">
+                    <h2>Search & Filter</h2>
+                    <div class="search-filters">
+                        <input type="text" v-model="searchQuery" @keyup.enter="applyFilters" 
+                               class="search-input" placeholder="Search by item name, description, or reporter">
+                        <select v-model="dateFilter" @change="applyFilters" class="filter-select">
+                            <option value="all">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                        </select>
+                        <button @click="applyFilters" class="btn-search">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                        <button @click="clearFilters" class="btn-clear">
+                            <i class="fas fa-times"></i> Clear
+                        </button>
+                    </div>
+                </section>
+
+                <section class="lost-section">
+                    <h2>Lost Items ({{ filteredLostItems.length }})</h2>
+                    <div v-if="filteredLostItems.length > 0">
+                        <div v-for="item in filteredLostItems" :key="item.id" class="lost-item-card">
+                            <div class="item-header">
+                                <div class="item-info">
+                                    <h3>{{ item.name }}</h3>
+                                    <p><i class="fas fa-map-marker-alt"></i> <strong>Lost at:</strong> {{ item.lastSeenLocation || 'Not specified' }}</p>
+                                    <p><i class="fas fa-calendar"></i> <strong>Date Lost:</strong> {{ formatDate(item.dateLost) }}</p>
+                                </div>
+                                <div class="item-meta">
+                                    <span class="status-badge status-lost">LOST</span>
+                                    <span class="reported-date">Reported: {{ formatDate(item.dateReported) }}</span>
+                                </div>
+                            </div>
+                            
+                            <div v-if="item.description" class="description-section">
+                                <h4><i class="fas fa-info-circle"></i> Description</h4>
+                                <p>{{ item.description }}</p>
+                            </div>
+
+                            <div class="reporter-info">
+                                <div class="reporter-details">
+                                    <p><strong><i class="fas fa-user"></i> Reporter:</strong> {{ item.reporterName }}</p>
+                                    <p><i class="fas fa-envelope"></i> {{ item.reporterEmail }}</p>
+                                    <p v-if="item.reporterPhone"><i class="fas fa-phone"></i> {{ item.reporterPhone }}</p>
+                                </div>
+                                <div class="contact-actions">
+                                    <a :href="'mailto:' + item.reporterEmail" class="btn-email" title="Send Email">
+                                        <i class="fas fa-envelope"></i> Email
+                                    </a>
+                                    <a v-if="item.reporterPhone" :href="'tel:' + item.reporterPhone" class="btn-phone" title="Call">
+                                        <i class="fas fa-phone"></i> Call
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="no-items">
+                        <i class="fas fa-search" style="font-size: 3em; margin-bottom: 20px; opacity: 0.5;"></i>
+                        <h3>{{ searchQuery || dateFilter !== 'all' ? 'No lost items found' : 'No lost items reported' }}</h3>
+                        <p>{{ searchQuery || dateFilter !== 'all' ? 'Try adjusting your search criteria' : 'No items have been reported as lost yet' }}</p>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
+    <script>
+        const db = firebase.firestore();
+
+        const app = Vue.createApp({
+            data() {
+                return {
+                    isLoading: true,
+                    searchQuery: '',
+                    dateFilter: 'all',
+                    allLostItems: [],
+                    filteredLostItems: []
+                };
+            },
+            computed: {
+                totalLostItems() {
+                    return this.allLostItems.length;
+                },
+                todaysLostItems() {
+                    try {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        return this.allLostItems.filter(item => {
+                            if (!item.dateReported) return false;
+                            const reportDate = item.dateReported.toDate ? item.dateReported.toDate() : new Date(item.dateReported);
+                            return reportDate >= today;
+                        }).length;
+                    } catch (error) {
+                        console.error('Error calculating today\'s lost items:', error);
+                        return 0;
+                    }
+                },
+                thisWeekLostItems() {
+                    try {
+                        const weekAgo = new Date();
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        weekAgo.setHours(0, 0, 0, 0);
+                        return this.allLostItems.filter(item => {
+                            if (!item.dateReported) return false;
+                            const reportDate = item.dateReported.toDate ? item.dateReported.toDate() : new Date(item.dateReported);
+                            return reportDate >= weekAgo;
+                        }).length;
+                    } catch (error) {
+                        console.error('Error calculating this week\'s lost items:', error);
+                        return 0;
+                    }
+                }
+            },
+            mounted() {
+                this.loadLostItems();
+            },
+            methods: {
+                async loadLostItems() {
+                    this.isLoading = true;
+                    try {
+                        // Query items with status 'lost' or any lost-related status
+                        const lostItemsSnap = await db.collection('lostItems').orderBy('dateReported', 'desc').get();
+                        
+                        this.allLostItems = lostItemsSnap.docs.map(doc => ({
+                            id: doc.id,
+                            ...doc.data()
+                        }));
+                        
+                        this.filteredLostItems = [...this.allLostItems];
+                        
+                    } catch (error) {
+                        console.error("Error loading lost items:", error);
+                        // Fallback: try to get lost items from main items collection
+                        try {
+                            const itemsSnap = await db.collection('items').where('status', '==', 'lost').orderBy('dateAdded', 'desc').get();
+                            this.allLostItems = itemsSnap.docs.map(doc => ({
+                                id: doc.id,
+                                reporterName: doc.data().addedBy || 'Unknown',
+                                reporterEmail: doc.data().contactEmail || 'No email',
+                                reporterPhone: doc.data().contactPhone || null,
+                                dateReported: doc.data().dateAdded,
+                                dateLost: doc.data().dateLost || doc.data().dateAdded,
+                                lastSeenLocation: doc.data().lastSeenLocation || doc.data().location,
+                                ...doc.data()
+                            }));
+                            this.filteredLostItems = [...this.allLostItems];
+                        } catch (fallbackError) {
+                            console.error("Error loading from items collection:", fallbackError);
+                            alert("Failed to load lost items. Please refresh the page.");
+                        }
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+                applyFilters() {
+                    let filtered = [...this.allLostItems];
+                    
+                    // Apply search filter
+                    if (this.searchQuery.trim()) {
+                        const query = this.searchQuery.toLowerCase();
+                        filtered = filtered.filter(item => 
+                            item.name.toLowerCase().includes(query) ||
+                            (item.description && item.description.toLowerCase().includes(query)) ||
+                            item.reporterName.toLowerCase().includes(query) ||
+                            item.reporterEmail.toLowerCase().includes(query) ||
+                            (item.lastSeenLocation && item.lastSeenLocation.toLowerCase().includes(query))
+                        );
+                    }
+                    
+                    // Apply date filter
+                    if (this.dateFilter !== 'all') {
+                        const now = new Date();
+                        let cutoffDate;
+                        
+                        switch(this.dateFilter) {
+                            case 'today':
+                                cutoffDate = new Date(now);
+                                cutoffDate.setHours(0, 0, 0, 0);
+                                break;
+                            case 'week':
+                                cutoffDate = new Date(now);
+                                cutoffDate.setDate(cutoffDate.getDate() - 7);
+                                cutoffDate.setHours(0, 0, 0, 0);
+                                break;
+                            case 'month':
+                                cutoffDate = new Date(now);
+                                cutoffDate.setMonth(cutoffDate.getMonth() - 1);
+                                cutoffDate.setHours(0, 0, 0, 0);
+                                break;
+                        }
+                        
+                        filtered = filtered.filter(item => 
+                            item.dateReported && item.dateReported.toDate() >= cutoffDate
+                        );
+                    }
+                    
+                    this.filteredLostItems = filtered;
+                },
+                clearFilters() {
+                    this.searchQuery = '';
+                    this.dateFilter = 'all';
+                    this.filteredLostItems = [...this.allLostItems];
+                },
+                formatDate(timestamp) {
+                    if (!timestamp) return 'Not specified';
+                    if (timestamp.toDate) {
+                        return timestamp.toDate().toLocaleDateString('en-US', { 
+                            year: 'numeric', month: 'short', day: 'numeric',
+                            hour: '2-digit', minute: '2-digit'
+                        });
+                    }
+                    return new Date(timestamp).toLocaleDateString('en-US', { 
+                        year: 'numeric', month: 'short', day: 'numeric'
+                    });
+                }
+            }
+        }).mount('#lostItemsApp');
+    </script>
+</body>
+</html>

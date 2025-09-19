@@ -29,6 +29,13 @@
             background-color: #ffc107; color: #212529; padding: 4px 8px; border-radius: 4px;
             font-size: 0.85em; font-weight: 500;
         }
+        .btn-delete-claim {
+            background-color: var(--danger); color: white; border: none; padding: 5px 10px;
+            border-radius: 5px; cursor: pointer; font-size: 0.85em;
+        }
+        .btn-delete-claim:disabled {
+            background-color: #6c757d; cursor: not-allowed; opacity: 0.6;
+        }
     </style>
 </head>
 <body>
@@ -41,6 +48,8 @@
                 <a href="item_log.html">Item Log</a>
                 <a href="daily_report.html" class="active">Claim Report</a>
                 <a href="user_management.html">User Management</a>
+                <a href="lost_items.html">Lost Items</a>
+                <a href="management.html">Management</a>
                 <a href="#" id="logout-link">Logout</a>
             </nav>
             <div class="hamburger" id="hamburger-menu">
@@ -82,7 +91,7 @@
                     <h2>All Claimed Items ({{ allClaimedItems.length }})</h2>
                     <div v-if="allClaimedItems.length > 0" class="table-container">
                         <table>
-                            <thead><tr><th>Item Name</th><th>Claimed By</th><th>Claim Code</th><th>Claim Date</th><th>Status</th></tr></thead>
+                            <thead><tr><th>Item Name</th><th>Claimed By</th><th>Claim Code</th><th>Claim Date</th><th>Status</th><th>Actions</th></tr></thead>
                             <tbody>
                                 <tr v-for="item in allClaimedItems" :key="item.id">
                                     <td>{{ item.name }}</td>
@@ -91,6 +100,11 @@
                                     <td>{{ formatDate(item.claimDate) }}</td>
                                     <td>
                                         <span :class="getStatusClass(item.status)">{{ getStatusText(item.status) }}</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn-delete-claim" @click="deleteClaim(item)" :disabled="item.status === 'collected'">
+                                            {{ item.status === 'collected' ? 'Collected' : 'Delete Claim' }}
+                                        </button>
                                     </td>
                                 </tr>
                             </tbody>
@@ -216,6 +230,41 @@
                 getStatusClass(status) {
                     if (status === 'collected') return 'status-collected';
                     return 'status-pending';
+                },
+                async deleteClaim(item) {
+                    if (!confirm(`Are you sure you want to delete the claim for "${item.name}"? This will restore the item to the site for others to claim.`)) {
+                        return;
+                    }
+                    
+                    try {
+                        await db.collection('items').doc(item.id).update({
+                            claimed: false,
+                            status: 'available',
+                            claimantName: null,
+                            claimantEmail: null,
+                            claimCode: null
+                        });
+
+                        await db.collection('claims').doc(item.claimId).delete();
+
+                        await db.collection('notifications').add({
+                            userId: item.claimantEmail,
+                            title: 'Your Claim has been Cancelled',
+                            message: `Your claim for "${item.name}" has been cancelled by an administrator. The item is now available for others to claim.`,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                            type: 'claim_cancelled',
+                            read: false,
+                            actionable: false
+                        });
+
+                        this.allClaimedItems = this.allClaimedItems.filter(i => i.id !== item.id);
+                        this.pendingPickup = this.pendingPickup.filter(p => p.id !== item.id);
+                        
+                        alert(`Claim for "${item.name}" has been deleted and the item is now available for others to claim.`);
+                    } catch (error) {
+                        console.error("Error deleting claim:", error);
+                        alert("Failed to delete claim. Please try again.");
+                    }
                 }
             }
         }).mount('#reportApp');
