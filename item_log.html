@@ -66,6 +66,16 @@
 
         <main class="container">
             <h1>Complete Item Log</h1>
+
+            <div class="search-container" style="margin-bottom: 20px;">
+                <input
+                    type="text"
+                    v-model="searchQuery"
+                    placeholder="Search by claim code or item name..."
+                    style="width: 100%; max-width: 400px; padding: 10px; border-radius: 5px; border: 1px solid var(--dark-bg); background-color: var(--dark-bg); color: var(--text-color); font-size: 1rem;"
+                >
+            </div>
+
             <div class="tabs">
                 <button class="tab-button" :class="{active: activeTab === 'unclaimed'}" @click="activeTab = 'unclaimed'">Unclaimed Items ({{ unclaimedItems.length }})</button>
                 <button class="tab-button" :class="{active: activeTab === 'claimed'}" @click="activeTab = 'claimed'">Claimed Items ({{ claimedItems.length }})</button>
@@ -187,6 +197,7 @@
                     isLoading: true,
                     activeTab: 'unclaimed',
                     allItems: [],
+                    searchQuery: '',
                     isEditModalVisible: false,
                     currentItemToEdit: null,
                     isModalImageLoading: false,
@@ -195,16 +206,27 @@
                 };
             },
             computed: {
+                filteredItems() {
+                    if (!this.searchQuery.trim()) {
+                        return this.allItems;
+                    }
+                    const query = this.searchQuery.toLowerCase().trim();
+                    return this.allItems.filter(item => {
+                        const itemName = (item.name || '').toLowerCase();
+                        const claimCode = (item.claimCode || '').toLowerCase();
+                        return itemName.includes(query) || claimCode.includes(query);
+                    });
+                },
                 unclaimedItems() {
-                    return this.allItems.filter(item => !item.claimed);
+                    return this.filteredItems.filter(item => !item.claimed);
                 },
                 claimedItems() {
-                    return this.allItems.filter(item => item.claimed);
+                    return this.filteredItems.filter(item => item.claimed);
                 },
                 phasedOutItems() {
                     const sixMonthsAgo = new Date();
                     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-                    return this.allItems.filter(item => {
+                    return this.filteredItems.filter(item => {
                         if (!item.dateFound || !item.dateFound.toDate) return false;
                         return item.dateFound.toDate() < sixMonthsAgo;
                     });
