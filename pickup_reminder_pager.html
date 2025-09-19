@@ -261,6 +261,155 @@
             background: var(--accent-color);
             transition: width 0.3s ease;
         }
+
+        .recipient-card {
+            background: var(--dark-bg);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid var(--accent-color);
+            overflow: hidden;
+        }
+
+        .recipient-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 15px 20px;
+            background: rgba(255, 179, 71, 0.1);
+        }
+
+        .recipient-info h4 {
+            margin: 0 0 10px 0;
+            color: var(--accent-color);
+            font-size: 1.2rem;
+        }
+
+        .recipient-info p {
+            margin: 5px 0;
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        .recipient-status {
+            text-align: right;
+        }
+
+        .email-preview-section {
+            padding: 15px 20px;
+            border-top: 1px solid rgba(255, 179, 71, 0.2);
+        }
+
+        .email-preview-content {
+            margin-top: 15px;
+        }
+
+        .email-preview-box {
+            background: white;
+            color: #333;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            font-family: Arial, sans-serif;
+        }
+
+        .email-preview-box .email-header {
+            background-color: #ffb347;
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+        }
+
+        .email-preview-box .email-header h3 {
+            margin: 0;
+            font-size: 1.3rem;
+        }
+
+        .email-body {
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .email-body p {
+            margin: 0 0 15px 0;
+        }
+
+        .email-body p:last-child {
+            margin-bottom: 0;
+        }
+
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 0.9rem;
+        }
+
+        .individual-actions {
+            text-align: right;
+        }
+
+        .bulk-actions {
+            padding: 15px;
+            background: rgba(255, 179, 71, 0.1);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .approval-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            padding: 20px;
+        }
+
+        .approval-content {
+            background: var(--light-bg);
+            border-radius: 10px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+            padding: 30px;
+            position: relative;
+        }
+
+        .approval-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--accent-color);
+        }
+
+        .approval-summary {
+            background: var(--dark-bg);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .approval-actions {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--dark-bg);
+        }
+
+        .btn-approve {
+            background: var(--success);
+            color: white;
+            margin-right: 15px;
+        }
+
+        .btn-approve:hover {
+            background: #28a745;
+        }
     </style>
 </head>
 <body>
@@ -355,35 +504,63 @@
                 </div>
             </div>
 
-            <!-- Recipients -->
+            <!-- Recipients with Email Preview -->
             <div class="recipients-section">
                 <h2><i class="fas fa-users"></i> Recipients ({{ eligibleForReminder.length }})</h2>
-                <table class="recipients-table" v-if="eligibleForReminder.length > 0">
-                    <thead>
-                        <tr>
-                            <th>User Name</th>
-                            <th>Email</th>
-                            <th>Item Name</th>
-                            <th>Category</th>
-                            <th>Days Since Claim</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="claim in eligibleForReminder" :key="claim.id">
-                            <td>{{ claim.userName || 'Unknown' }}</td>
-                            <td>{{ claim.email }}</td>
-                            <td>{{ claim.itemName }}</td>
-                            <td>{{ claim.category }}</td>
-                            <td>{{ getDaysSinceClaim(claim.claimDate) }}</td>
-                            <td>
+
+                <div v-if="eligibleForReminder.length > 0">
+                    <div class="bulk-actions" style="margin-bottom: 20px; text-align: center;">
+                        <button class="btn btn-primary" @click="previewAllEmails" :disabled="isLoading">
+                            <i class="fas fa-eye"></i>
+                            Preview All Emails for Approval
+                        </button>
+                    </div>
+
+                    <div v-for="claim in eligibleForReminder" :key="claim.id" class="recipient-card">
+                        <div class="recipient-header">
+                            <div class="recipient-info">
+                                <h4>{{ claim.userName || 'Unknown User' }}</h4>
+                                <p><strong>Email:</strong> {{ claim.email }}</p>
+                                <p><strong>Item:</strong> {{ claim.itemName }} ({{ claim.category }})</p>
+                                <p><strong>Days Since Claim:</strong> {{ getDaysSinceClaim(claim.claimDate) }}</p>
+                            </div>
+                            <div class="recipient-status">
                                 <span class="status-badge" :class="'status-' + (emailStatus[claim.id] || 'pending')">
                                     {{ (emailStatus[claim.id] || 'pending').toUpperCase() }}
                                 </span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                            </div>
+                        </div>
+
+                        <div class="email-preview-section">
+                            <button class="btn btn-secondary btn-small" @click="toggleEmailPreview(claim.id)">
+                                <i class="fas" :class="emailPreviews[claim.id] ? 'fa-eye-slash' : 'fa-eye'"></i>
+                                {{ emailPreviews[claim.id] ? 'Hide' : 'Show' }} Email Preview
+                            </button>
+
+                            <div v-if="emailPreviews[claim.id]" class="email-preview-content">
+                                <div class="email-preview-box">
+                                    <div class="email-header">
+                                        <h3>Pickup Reminder</h3>
+                                    </div>
+                                    <div class="email-body">
+                                        <p>Hi {{ claim.userName || 'there' }},</p>
+                                        <p>We noticed you haven't picked up your item <strong>{{ claim.itemName }}</strong> yet. This is a reminder that if you don't pick up the item in the next seven (7) days, it will move back to claimable items.</p>
+                                        <p>If you have any concerns, please reply to this email.</p>
+                                        <p>Thank you,<br>Reunited Lost & Found Team</p>
+                                    </div>
+                                </div>
+
+                                <div class="individual-actions">
+                                    <button class="btn btn-primary btn-small" @click="sendIndividualEmail(claim)" :disabled="isLoading">
+                                        <i class="fas fa-paper-plane"></i>
+                                        Send This Email
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div v-else style="text-align: center; padding: 40px; color: var(--text-secondary);">
                     <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
                     <p>No eligible recipients found. Adjust your filters or check back later.</p>
@@ -439,7 +616,9 @@
                     emailStatus: {},
                     sentCount: 0,
                     errorCount: 0,
-                    activityLog: []
+                    activityLog: [],
+                    emailPreviews: {},
+                    showApprovalModal: false
                 };
             },
             computed: {
@@ -772,6 +951,113 @@
                         hour12: true,
                         timeZone: 'Asia/Kolkata'
                     });
+                },
+
+                toggleEmailPreview(claimId) {
+                    Vue.set(this.emailPreviews, claimId, !this.emailPreviews[claimId]);
+                },
+
+                previewAllEmails() {
+                    // Show all email previews
+                    this.eligibleForReminder.forEach(claim => {
+                        Vue.set(this.emailPreviews, claim.id, true);
+                    });
+
+                    this.addLogEntry('info', `Previewing ${this.eligibleForReminder.length} emails for approval`);
+
+                    // Scroll to first recipient
+                    this.$nextTick(() => {
+                        const firstCard = document.querySelector('.recipient-card');
+                        if (firstCard) {
+                            firstCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    });
+                },
+
+                async sendIndividualEmail(claim) {
+                    if (!confirm(`Send pickup reminder to ${claim.email} for ${claim.itemName}?`)) {
+                        return;
+                    }
+
+                    this.isLoading = true;
+                    this.loadingMessage = `Sending email to ${claim.email}...`;
+                    this.progress = 50;
+
+                    try {
+                        Vue.set(this.emailStatus, claim.id, 'sending');
+
+                        const emailData = {
+                            email: claim.email,
+                            userName: claim.userName,
+                            itemName: claim.itemName
+                        };
+
+                        const response = await fetch('https://api.reunited.co.in/api/send-pickup-reminder', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify(emailData),
+                            mode: 'cors',
+                            credentials: 'omit'
+                        });
+
+                        this.progress = 100;
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            Vue.set(this.emailStatus, claim.id, 'sent');
+                            this.sentCount++;
+                            this.addLogEntry('success', `Email sent to ${claim.email} for ${claim.itemName} (ID: ${result.messageId || 'N/A'})`);
+                            alert('✅ Email sent successfully!');
+                        } else {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+                    } catch (error) {
+                        Vue.set(this.emailStatus, claim.id, 'error');
+                        this.errorCount++;
+                        this.addLogEntry('error', `Failed to send to ${claim.email}: ${error.message}`);
+
+                        if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+                            alert('❌ CORS Error: The API server may not allow requests from this domain.');
+                        } else {
+                            alert(`❌ Failed to send email: ${error.message}`);
+                        }
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                generateEmailContent(claim) {
+                    return {
+                        subject: `Pickup Reminder: ${claim.itemName}`,
+                        html: `
+                            <!DOCTYPE html>
+                            <html>
+                                <head>
+                                    <style>
+                                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; }
+                                        .container { padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+                                        .header { background-color: #ffb347; color: white; padding: 10px 20px; text-align: center; border-radius: 5px 5px 0 0; margin-bottom: 20px; }
+                                        .footer { margin-top: 20px; font-size: 12px; color: #777; text-align: center; }
+                                    </style>
+                                </head>
+                                <body>
+                                    <div class="container">
+                                        <div class="header">
+                                            <h2>Pickup Reminder</h2>
+                                        </div>
+                                        <p>Hi ${claim.userName || 'there'},</p>
+                                        <p>We noticed you haven't picked up your item <strong>${claim.itemName}</strong> yet. This is a reminder that if you don't pick up the item in the next seven (7) days, it will move back to claimable items.</p>
+                                        <p>If you have any concerns, please reply to this email.</p>
+                                        <p>Thank you,<br>Reunited Lost & Found Team</p>
+                                    </div>
+                                </body>
+                            </html>
+                        `,
+                        text: `Hi ${claim.userName || 'there'},\n\nWe noticed you haven't picked up your item ${claim.itemName} yet. This is a reminder that if you don't pick up the item in the next seven (7) days, it will move back to claimable items.\n\nIf you have any concerns, please reply to this email.\n\nThank you,\nReunited Lost & Found Team`
+                    };
                 },
 
                 addLogEntry(type, message) {
